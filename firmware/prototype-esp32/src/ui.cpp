@@ -206,8 +206,34 @@ static void screenMessage(const NavSnapshot &s, const char *title, const char *s
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
+// Scans the I2C bus, lists every device it hears and returns the OLED address (0x3C or 0x3D), or 0.
+static uint8_t detectOledAddress() {
+  Wire.begin(OLED_SDA_PIN, OLED_SCL_PIN);
+  Serial.printf("[oled] scanning I2C bus (SDA=GPIO%d, SCL=GPIO%d)...\n", OLED_SDA_PIN, OLED_SCL_PIN);
+  uint8_t found = 0;
+  int count = 0;
+  for (uint8_t addr = 0x08; addr < 0x78; addr++) {
+    Wire.beginTransmission(addr);
+    if (Wire.endTransmission() == 0) {
+      count++;
+      Serial.printf("[oled] I2C device found at 0x%02X\n", addr);
+      if (!found && (addr == 0x3C || addr == 0x3D)) found = addr;
+    }
+  }
+  if (count == 0) {
+    Serial.println("[oled] NO I2C DEVICE FOUND -> check wiring: VCC=3V3, GND=GND, SDA=GPIO21, SCL=GPIO22 "
+                   "(and that the wires are firmly in the pins)");
+  } else if (!found) {
+    Serial.println("[oled] devices found, but none at 0x3C/0x3D -> is this really an SSD1306 OLED?");
+  }
+  return found;
+}
+
 void uiInit() {
-  u8g2.setI2CAddress(OLED_I2C_ADDR << 1);
+  uint8_t addr = detectOledAddress();
+  if (!addr) addr = OLED_I2C_ADDR;   // fall back to the configured address
+  Serial.printf("[oled] using address 0x%02X\n", addr);
+  u8g2.setI2CAddress(addr << 1);
   u8g2.begin();
   u8g2.setBusClock(400000);
   u8g2.clearBuffer();

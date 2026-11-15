@@ -74,7 +74,7 @@ void bleInit() {
 
   g_events = svc->createCharacteristic(MOTONAV_EVENTS_UUID, NIMBLE_PROPERTY::NOTIFY);
 
-  svc->start();
+  server->start();   // NimBLE 2.x: services are started together with the server
 
   NimBLEAdvertising *adv = NimBLEDevice::getAdvertising();
   adv->setName(MOTONAV_DEVICE_NAME);
