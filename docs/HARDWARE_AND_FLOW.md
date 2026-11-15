@@ -76,6 +76,14 @@ Run an **outdoor display A/B test** on real handlebars before the PCB spin:
 - mounted at realistic distance/angle; glove-operated buttons;
 - −10 °C and +50 °C chamber/sun-soak, plus a rain/hose test.
 
+### 1.6 Market reference points
+
+From web-search result summaries (beeline.co itself was not reachable from the build sandbox, so these are secondhand — verify against the manufacturer's spec page):
+
+- **Beeline Moto II:** Bluetooth LE, **no onboard GPS** (guidance uses the phone's GPS), ~1.45" colour display, 600 mAh LiPo, ~14 h riding time, IP67, accelerometer + gyro + magnetometer, 4 physical buttons, ~42 g. **The internal chip is not named in any source found** — the FCC filing for its FCC ID (internal photos exhibit) or a teardown is the way to confirm.
+- **Implication for us:** a phone-GPS device with roughly 14 h of riding time is what the leading product ships, so multi-week battery life is *not* a market requirement. Weigh outdoor visibility above extreme battery life in the §1.5 display test; this keeps the bright TFT/AMOLED options open. It also supports shipping v1 with phone GPS only.
+- **Chips in similar cycling/e-bike products:** Nordic's own customer news lists nRF52840 in the Magene C406 Pro bike computer and a Foxconn e-bike display, and nRF52832 in the XOSS Sprint. This is vendor-published, so it shows Nordic is common in the category, not that it is the majority.
+
 ---
 
 ## 2. How the device connects to the phone
