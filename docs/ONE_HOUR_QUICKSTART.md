@@ -11,7 +11,7 @@ This only fits in an hour if the **prep is done first** — Android Studio's fir
 |------|-------|
 | `firmware/prototype-esp32` | Written and **compiled** (SSD1306 and SH1106 variants). Not yet flashed. |
 | `protocol/` | Written; firmware struct cross-checked against the Android test bytes. |
-| `android/` | Written against the real SDK 7.0.0 API. **Not compiled yet** (sandbox hit a Maven Central rate limit). Expect small compile fixes. |
+| `android/` | Kotlin compiles against the real SDK 7.0.0 and Android jars; 26 unit tests pass. Full Gradle build and phone run **not done** (Maven Central rate-limited the sandbox) — the first Android Studio build may show Gradle/resource issues. Destination comes from **Share in Google Maps**. |
 
 ## Prep (before the clock starts)
 

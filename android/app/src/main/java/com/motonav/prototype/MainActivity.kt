@@ -1,6 +1,7 @@
 package com.motonav.prototype
 
 import android.Manifest
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -14,6 +15,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.google.android.gms.maps.model.LatLng
 import com.motonav.prototype.NavProtocol.Man
 import com.motonav.prototype.NavProtocol.Mode
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
@@ -22,6 +24,11 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var tvBle: TextView
     private lateinit var tvLog: TextView
+    private lateinit var tvDestName: TextView
+    private lateinit var tvDestInfo: TextView
+    private lateinit var etDest: EditText
+    private lateinit var etStart: EditText
+    private lateinit var swTwoWheeler: Switch
     private val logLines = ArrayDeque<String>()
 
     private val handler = Handler(Looper.getMainLooper())
@@ -40,6 +47,11 @@ class MainActivity : AppCompatActivity() {
 
         tvBle = findViewById(R.id.tvBle)
         tvLog = findViewById(R.id.tvLog)
+        tvDestName = findViewById(R.id.tvDestName)
+        tvDestInfo = findViewById(R.id.tvDestInfo)
+        etDest = findViewById(R.id.etDest)
+        etStart = findViewById(R.id.etStart)
+        swTwoWheeler = findViewById(R.id.swTwoWheeler)
 
         NavBridge.log = this::log
         ble = BleClient(
@@ -55,7 +67,18 @@ class MainActivity : AppCompatActivity() {
         click(R.id.btnConnect) { askPermissions(); ble.connect() }
         click(R.id.btnDisconnect) { stopTest(); ble.disconnect() }
 
-        // 1) Display tests — no Google involved
+        // Destination
+        click(R.id.btnStartNav) { startNavigation(simulate = false) }
+        click(R.id.btnStop) { stopTest(); nav?.stop() }
+
+        // Advanced / testing
+        click(R.id.btnInitNav) {
+            askPermissions()
+            val controller = nav ?: NavController(this, this::log).also { nav = it }
+            controller.whenReady { log("Ready: share a place from Google Maps, then Start navigation") }
+        }
+        click(R.id.btnSim) { startNavigation(simulate = true) }
+
         click(R.id.btnLeft) { startTest(Man.LEFT, 300, "Brigade Road") }
         click(R.id.btnRight) { startTest(Man.RIGHT, 80, "MG Road") }
         click(R.id.btnStraight) { startTest(Man.STRAIGHT, 1800, "Outer Ring Road") }
@@ -64,17 +87,14 @@ class MainActivity : AppCompatActivity() {
         click(R.id.btnArrive) { startTest(Man.ARRIVE, 40, "Destination") }
         click(R.id.btnStopTest) { stopTest(); NavBridge.sendMode(Mode.IDLE) }
 
-        // 2) Google Navigation SDK
-        click(R.id.btnInitNav) {
-            askPermissions()
-            val controller = nav ?: NavController(this, this::log).also { nav = it }
-            controller.init { log("Ready: pick Simulated route or Real navigation") }
-        }
-        click(R.id.btnSim) { startNavigation(simulate = true) }
-        click(R.id.btnReal) { startNavigation(simulate = false) }
-        click(R.id.btnStop) { stopTest(); nav?.stop() }
+        log("MotoNav ready. 1) Connect  2) Share a place from Google Maps  3) Start navigation")
+        handleIncoming(intent)
+    }
 
-        log("MotoNav prototype ready. 1) Connect  2) test buttons  3) Init Navigation SDK")
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIncoming(intent)
     }
 
     override fun onDestroy() {
@@ -115,6 +135,62 @@ class MainActivity : AppCompatActivity() {
         permissionLauncher.launch(p.toTypedArray())
     }
 
+    // ---- Share from Google Maps ---------------------------------------------------------
+
+    /** Google Maps -> Share -> MotoNav arrives here as ACTION_SEND (text) or a geo: VIEW intent. */
+    private fun handleIncoming(incoming: Intent?) {
+        val text = when (incoming?.action) {
+            Intent.ACTION_SEND -> incoming.getStringExtra(Intent.EXTRA_TEXT)
+            Intent.ACTION_VIEW -> incoming.dataString
+            else -> null
+        }
+        if (text.isNullOrBlank()) return
+        setIntent(Intent(this, MainActivity::class.java))   // do not re-import after a screen rotation
+        importShared(text)
+    }
+
+    private fun importShared(text: String) {
+        tvDestName.text = "Reading shared link..."
+        tvDestInfo.text = ""
+        log("Shared: " + text.take(120).replace('\n', ' '))
+        Thread {
+            val result = try {
+                ShareImporter.import(text)
+            } catch (e: Exception) {
+                ImportResult.Failed("Could not read the link: ${e.message}")
+            }
+            runOnUiThread { showImport(result) }
+        }.start()
+    }
+
+    private fun showImport(result: ImportResult) {
+        when (result) {
+            is ImportResult.Ok -> {
+                val p = result.place
+                val lat = p.lat ?: return
+                val lng = p.lng ?: return
+                tvDestName.text = p.name ?: "Shared location"
+                tvDestInfo.text = String.format(Locale.US, "%.5f, %.5f", lat, lng) +
+                    if (p.approximate) "   (approximate: map centre, not the exact place)" else ""
+                etDest.setText(String.format(Locale.US, "%.6f,%.6f", lat, lng))
+                log("Destination set. Press Start navigation.")
+            }
+
+            is ImportResult.NeedsLookup -> {
+                tvDestName.text = result.name ?: "Unknown place"
+                tvDestInfo.text = "This link has no coordinates. Share the place itself (open its page in " +
+                    "Google Maps, then Share), or type lat,lng under Advanced."
+                log("Link understood but contains no coordinates")
+            }
+
+            is ImportResult.Failed -> {
+                tvDestName.text = "Could not read the shared link"
+                tvDestInfo.text = result.reason
+                log("Share failed: ${result.reason}")
+            }
+        }
+    }
+
     // ---- display test (no Google) -------------------------------------------------------
 
     /** Re-sends the same scenario every second, counting the distance down, until stopped. */
@@ -148,23 +224,22 @@ class MainActivity : AppCompatActivity() {
 
     private fun startNavigation(simulate: Boolean) {
         stopTest()
-        val controller = nav
-        if (controller == null || !controller.isReady) {
-            log("Press 'Init Navigation SDK' first and wait for 'Navigator ready'")
-            return
-        }
-        val dest = Coords.parse(findViewById<EditText>(R.id.etDest).text.toString())
+        val dest = Coords.parse(etDest.text.toString())
         if (dest == null) {
-            log("Destination must look like 12.9352,77.6245")
+            log("No destination yet — share a place from Google Maps, or type lat,lng under Advanced")
             return
         }
-        val start = Coords.parse(findViewById<EditText>(R.id.etStart).text.toString())
-        val twoWheeler = findViewById<Switch>(R.id.swTwoWheeler).isChecked
-        controller.start(
-            simulate = simulate,
-            start = start?.let { LatLng(it.first, it.second) },
-            dest = LatLng(dest.first, dest.second),
-            twoWheeler = twoWheeler,
-        )
+        val start = Coords.parse(etStart.text.toString())
+        if (!ble.isConnected) log("Note: the MotoNav display is not connected (press Connect)")
+
+        val controller = nav ?: NavController(this, this::log).also { nav = it }
+        controller.whenReady {
+            controller.start(
+                simulate = simulate,
+                start = start?.let { LatLng(it.first, it.second) },
+                dest = LatLng(dest.first, dest.second),
+                twoWheeler = swTwoWheeler.isChecked,
+            )
+        }
     }
 }

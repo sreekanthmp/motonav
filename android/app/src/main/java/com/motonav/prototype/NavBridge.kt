@@ -28,8 +28,8 @@ object NavBridge {
         val deviceManeuver = NavMapper.maneuver(sdkManeuver)
         val exit = if (NavMapper.isRoundabout(deviceManeuver)) step?.roundaboutTurnNumber ?: 0 else 0
         val distToStep = info.distanceToCurrentStepMeters ?: 0
-        val remaining = info.distanceToFinalDestinationMeters ?: info.distanceToDestinationMeters ?: 0
-        val etaSec = info.timeToFinalDestinationSeconds ?: info.timeToDestinationSeconds
+        val remaining = info.distanceToFinalDestinationMeters ?: info.distanceToNextDestinationMeters ?: 0
+        val etaSec = info.timeToFinalDestinationSeconds ?: info.timeToNextDestinationSeconds
         val mode = NavMapper.mode(info.navState, arrived)
 
         val core = NavProtocol.encodeCore(

@@ -16,6 +16,6 @@ Start here: [`docs/ONE_HOUR_QUICKSTART.md`](docs/ONE_HOUR_QUICKSTART.md).
 |-------|--------|
 | ESP32 firmware | Compiles (both OLED variants). Not flashed to hardware yet. |
 | Protocol | Cross-checked firmware ↔ Android test bytes. |
-| Android app | Written against the real SDK API; **not compiled yet**. |
+| Android app | Kotlin compiles against the real SDK/Android jars; 26 unit tests pass. Full Gradle build and phone run **not done yet**. Destination via **Share from Google Maps**. |
 
 Docs: [`ARCHITECTURE.md`](docs/ARCHITECTURE.md) · [`HARDWARE_AND_FLOW.md`](docs/HARDWARE_AND_FLOW.md) · [`PROTOTYPE_PLAN.md`](docs/PROTOTYPE_PLAN.md)

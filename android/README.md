@@ -2,7 +2,11 @@
 
 Small Kotlin app: connects to the ESP32 over BLE and forwards Google Navigation SDK turn-by-turn data to it.
 
-**Status:** all code written against the real Navigation SDK 7.0.0 API (signatures read from the SDK itself). **It has not been compiled yet** — the build sandbox was rate-limited by Maven Central. Open it in Android Studio first and expect to fix a few small compile errors. Pure-logic tests (`ProtocolTest`) are included.
+**Status**
+
+- All Kotlin sources **compile without errors** with the Kotlin compiler against the **real** Navigation SDK 7.0.0 and Android 36 jars. Only the AndroidX classes used by `MainActivity` were checked against small stand-ins.
+- The **26 unit tests pass** (`ProtocolTest`, `ShareParserTest`).
+- A full **Gradle build was not run** (Maven Central rate-limited the build sandbox), and the app has **not been run on a phone**. The first Android Studio sync/build may still surface Gradle, resource or runtime issues — send me the first error lines.
 
 ## What you need
 
@@ -26,13 +30,28 @@ Small Kotlin app: connects to the ESP32 over BLE and forwards Google Navigation 
 1. Android Studio → *Open* → select this `android/` folder → let Gradle sync.
 2. Plug in the phone → *Run*.
 3. In the app:
-   1. Grant the permissions.
+   1. Grant the permissions (location; "Allow all the time" for locked-screen use).
    2. **Connect to MotoNav** (ESP32 powered and showing "Waiting for phone").
-   3. **Test buttons** (Left 300m, Right 80m, …) — proves the Bluetooth path with no Google account.
-   4. **Init Navigation SDK** → accept Google's terms → wait for "Navigator ready".
-   5. Edit the start/destination coordinates to your city, then **Simulated route** (desk test) or **Real navigation**.
+   3. **Choose a destination: in Google Maps open a place → Share → MotoNav.** The destination card fills in.
+   4. **Start navigation.** The first time it initialises the Navigation SDK and shows Google's terms — accept them.
 
-Start and destination are plain `lat,lng`. The default values are in Bengaluru — change them.
+The first start uses your real GPS. Under *Advanced / testing* you can still type `lat,lng`, run a
+**Simulated route** (desk test), and use the display test buttons (no Google account needed).
+
+### What the share feature understands
+
+| Shared from Google Maps | Result |
+|-------------------------|--------|
+| A place (link, or "name + link" text) | Exact destination |
+| Short links (`maps.app.goo.gl/...`) | Resolved over the network (Google hosts only), then as above |
+| `geo:` links | Coordinates, or a name only |
+| Directions with coordinates | The last point is the destination |
+| Directions with place **names only** | Not enough information — the app says so and asks you to share the place itself |
+| A map view with no place | Used as an *approximate* destination and labelled as such |
+
+Google's link formats are not a stable API, so the parser is covered by unit tests (`ShareParserTest`)
+and every failure ends in a message — never a wrong destination. Searching by name inside the app
+(Google Places autocomplete) is a possible later addition.
 
 ## How it works
 

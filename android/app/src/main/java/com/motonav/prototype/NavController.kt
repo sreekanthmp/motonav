@@ -13,7 +13,7 @@ import com.google.android.libraries.navigation.Waypoint
 
 /**
  * Thin wrapper around the Google Navigation SDK:
- *  init (shows Google's terms dialog) -> setDestination -> startGuidance [-> simulator].
+ *  init (shows Google's terms dialog once) -> setDestination -> startGuidance [-> simulator].
  * The turn-by-turn data itself arrives in [NavInfoReceivingService].
  */
 class NavController(
@@ -21,6 +21,8 @@ class NavController(
     private val log: (String) -> Unit,
 ) {
     private var navigator: Navigator? = null
+    private var initializing = false
+    private val waiting = mutableListOf<() -> Unit>()
 
     val isReady: Boolean get() = navigator != null
 
@@ -30,7 +32,19 @@ class NavController(
         }
     }
 
-    fun init(onReady: () -> Unit) {
+    /** Runs [action] once the SDK is ready, initialising it first if needed (safe to call repeatedly). */
+    fun whenReady(action: () -> Unit) {
+        if (navigator != null) {
+            action()
+            return
+        }
+        waiting += action
+        if (initializing) return
+        initializing = true
+        initSdk()
+    }
+
+    private fun initSdk() {
         val app = activity.application
         // Keeps guidance alive in the background with a notification.
         NavigationApi.initForegroundServiceManagerMessageAndIntent(
@@ -40,7 +54,7 @@ class NavController(
         NavigationApi.getNavigator(activity, object : NavigationApi.NavigatorListener {
             override fun onNavigatorReady(navigator: Navigator) {
                 this@NavController.navigator = navigator
-                navigator.setAudioGuidance(Navigator.AudioGuidance.SILENT)   // desk testing: no voice
+                navigator.setAudioGuidance(Navigator.AudioGuidance.SILENT)   // no voice for now
                 navigator.addArrivalListener(Navigator.ArrivalListener { event ->
                     if (event.isFinalDestination) {
                         NavBridge.arrived = true
@@ -53,10 +67,16 @@ class NavController(
                 )
                 NavigationApi.getRoadSnappedLocationProvider(app)?.addLocationListener(locationListener)
                 log("Navigator ready. Turn-by-turn feed registered = $registered")
-                onReady()
+                initializing = false
+                val pending = waiting.toList()
+                waiting.clear()
+                pending.forEach { it() }
             }
 
+            @Suppress("DEPRECATION")   // ErrorCode.NETWORK_ERROR is flagged deprecated by the SDK but still reported
             override fun onError(errorCode: Int) {
+                initializing = false
+                waiting.clear()
                 val why = when (errorCode) {
                     NavigationApi.ErrorCode.NOT_AUTHORIZED ->
                         "NOT_AUTHORIZED — check MAPS_API_KEY, that the Navigation SDK is enabled and billing is on"
@@ -73,7 +93,7 @@ class NavController(
     fun start(simulate: Boolean, start: LatLng?, dest: LatLng, twoWheeler: Boolean) {
         val nav = navigator
         if (nav == null) {
-            log("Init the Navigation SDK first")
+            log("Navigation SDK is not ready yet")
             return
         }
         NavBridge.reset()
