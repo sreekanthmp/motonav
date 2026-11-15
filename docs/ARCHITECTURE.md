@@ -16,11 +16,11 @@ There is **no public API that streams the Google Maps app's turn-by-turn guidanc
 |---|----------|----------|---------|
 | A | **Share-to-app**: rider finds a place in Google Maps → Share → MotoNav. App resolves the link to coordinates, routes with *your* engine, sends guidance to the device. | iOS + Android | **Recommended.** Legitimate, robust, no per-route Google cost. |
 | B | **Google Places API** (autocomplete / details) inside your own app for search and POI data. | iOS + Android | **Recommended** alongside A. Check display/attribution terms. |
-| C | **Google Navigation SDK** (Android/iOS): your app runs Google's navigation and you read its turn-by-turn feed to drive the device. | iOS + Android | Possible later. Separately licensed, priced and approved — verify eligibility, cost and terms before depending on it. |
+| C | **Google Navigation SDK** (Android/iOS): your app runs Google's navigation and you read its turn-by-turn feed to drive the device. | iOS + Android | **Recommended for the prototype** (see `PROTOTYPE_PLAN.md`). Google's docs show self-serve access (Cloud project + billing), a turn-by-turn feed for external displays, and good-quality two-wheeler directions in India. Priced per destination — check the India price list, and read the Maps Platform license restrictions before shipping a product. |
 | D | **Google Routes/Directions API** as your router. | — | Risky. Google's terms have historically restricted using route data on non-Google displays and caching it. Get a legal read first. Also has no motorcycle/"twisty road" profile. |
 | E | **Scrape the Google Maps notification** (Android `NotificationListenerService`). | Android only | Prototype hack only. Fragile, grey on ToS, impossible on iOS. Don't build a product on it. |
 
-**Recommendation:** own routing engine on OpenStreetMap data (motorcycle-aware) + Google for *search and import* (A + B). Revisit C once you have users and a real need for Google live traffic.
+**Recommendation:** **prototype with C** (Navigation SDK) — it is the simplest path, because Google does routing, rerouting and map-matching. For a product, decide between C and **own routing on OpenStreetMap data (motorcycle-aware) + Google for search and import (A + B)** once you know the per-destination cost and the license terms. Keep A + B as Plan B.
 
 Trade-off to accept: Google's traffic and POI data are the best available; OSM routing quality varies by region. If traffic matters, evaluate Mapbox / HERE / TomTom as a paid add-on rather than Google.
 

@@ -193,8 +193,8 @@ There is no public feed from the Google Maps *app*. Design the app so the **sour
 
 | Source | What it is | When |
 |--------|-----------|------|
-| **OwnRouter** | Your routing engine (Valhalla, motorcycle costing) + your own map-matching produce the maneuvers. Destination can come from Google Maps **Share** or Google Places search. | **MVP.** This is what "Google Maps → device" means in practice. |
-| **GoogleNav (Navigation SDK)** | Google's navigation runs inside *your* app; its turn-by-turn updates (current step, distance to step, remaining time/distance) are read and converted to NavState. Android and iOS both expose such an update feed — **confirm exact API names and eligibility in current docs**. | Later, only if you need Google's live traffic and accept licensing, cost and UI/attribution rules. Confirm with Google sales that a motorcycle-device use case is permitted. |
+| **OwnRouter** | Your routing engine (Valhalla, motorcycle costing) + your own map-matching produce the maneuvers. Destination can come from Google Maps **Share** or Google Places search. | **Plan B / long-term cost control.** Use if Navigation SDK cost or license terms don't work for a product. |
+| **GoogleNav (Navigation SDK)** | Google's navigation runs inside *your* app; its turn-by-turn feed (`registerServiceForNavUpdates` → `NavInfo`/`StepInfo`, about once a second on Android) is read and converted to NavState. Self-serve access per Google's docs; two-wheeler directions supported in India. | **Prototype** (see `PROTOTYPE_PLAN.md`). For a product, confirm per-destination cost and that the Maps Platform license restrictions allow sending guidance to external hardware. |
 | **GpxReplay** | Replays a recorded ride. | Dev/testing — lets firmware be developed without a bike. |
 | ~~Notification scraping~~ | Android `NotificationListenerService` reading Google Maps' ongoing notification text/icon. | Prototype only. Android-only, breaks when Google changes the notification, grey on ToS, requires a scary special permission, impossible on iOS. Don't ship it. |
 
