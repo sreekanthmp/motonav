@@ -41,7 +41,8 @@ Read from `developers.google.com/maps/documentation/navigation/android-sdk/` on 
 - Whether **sending Google navigation data to external hardware** is allowed for a *product*. The docs pages read don't say; the Maps Platform Terms "License Restrictions" section was not read. Fine to prototype; read it before shipping.
 - **Screen-off / locked-phone behaviour** of the feed (docs don't state it). This is test #1 in M5.
 - Exact getter names for distance, time and road name — use the API reference.
-- Whether `Waypoint.Builder` accepts lat/lng (the pages read only show `setPlaceIdString`). If not, use Places autocomplete to get place IDs.
+- ~~Whether `Waypoint.Builder` accepts lat/lng~~ — **resolved:** `setLatLng(double, double)` exists in SDK 7.0.0 (checked in the SDK itself), so destinations can be plain coordinates; place IDs are only needed for Places search.
+- `NavInfo` semantics — the code assumes `currentStep` is the *upcoming* maneuver and `distanceToCurrentStepMeters` the distance to it. Check against Google's own UI on the first run.
 
 ---
 

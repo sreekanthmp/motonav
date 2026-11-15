@@ -1,0 +1,6 @@
+# Copy this file to local.properties (it is git-ignored) and fill in your key.
+# Android Studio adds the sdk.dir line itself.
+#
+# MAPS_API_KEY = the API key you created in Google Cloud, restricted to
+# "Navigation SDK for Android" (and to this app's package + SHA-1).
+MAPS_API_KEY=YOUR_GOOGLE_API_KEY_HERE

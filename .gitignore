@@ -1,0 +1,11 @@
+# Build outputs / local config
+.pio/
+.vscode/
+build/
+.gradle/
+.idea/
+*.iml
+local.properties
+*.apk
+*.aab
+.DS_Store
