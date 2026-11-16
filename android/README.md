@@ -70,6 +70,20 @@ Navigation SDK ──(Messenger, ~1/s)──► NavInfoReceivingService ──�
 | `BleClient.kt` | Scan, connect, auto-reconnect, latest-wins write queue |
 | `MainActivity.kt` | Buttons, permissions, on-screen log |
 
+## Bluetooth: don't pair MotoNav in Android's Bluetooth settings
+
+Connect only through the app's **Connect to MotoNav** button. If you pair the device in Android's Bluetooth
+settings, Android keeps a link open, the ESP32 stops advertising, and the app's scan sees nothing
+("Bluetooth: scanning for MotoNav..." forever). Fix: Settings → Bluetooth → gear next to MotoNav →
+**Forget**, press **EN** on the ESP32, then tap Disconnect → Connect in the app. (The app also falls back to
+connecting directly to a paired MotoNav after 3 s of scanning.)
+
+## Verified on a real phone (Samsung SM-G781B)
+
+The Navigation SDK turn-by-turn feed works: `NavInfo` arrives about once a second with the state, maneuver,
+distance to it, remaining distance, ETA and street name, and the maneuver mapping produced the expected
+device values.
+
 ## Things to check on the first run
 
 - `NavInfo` semantics: the code assumes `currentStep` is the **upcoming** maneuver and `distanceToCurrentStepMeters` the distance to it. Compare the on-screen log lines with what the SDK's own navigation UI shows.

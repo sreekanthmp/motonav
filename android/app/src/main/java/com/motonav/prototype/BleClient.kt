@@ -108,12 +108,42 @@ class BleClient(
             scanning = true
             setState(State.SCANNING)
             log("Scanning for \"${NavProtocol.DEVICE_NAME}\"...")
+            handler.postDelayed(bondedFallbackRunnable, 3_000)
+            handler.postDelayed(scanHintRunnable, 10_000)
         } catch (e: SecurityException) {
             log("Scan blocked: missing Bluetooth permission")
         }
     }
 
+    /**
+     * A device that is already connected to this phone (e.g. paired in Android's Bluetooth settings) stops
+     * advertising, so scanning never finds it. If it is paired with this phone, connect to it directly.
+     */
+    private val bondedFallbackRunnable = Runnable {
+        if (state != State.SCANNING || !scanning) return@Runnable
+        val bonded = try {
+            adapter?.bondedDevices?.firstOrNull { it.name == NavProtocol.DEVICE_NAME }
+        } catch (e: SecurityException) {
+            null
+        }
+        if (bonded != null) {
+            log("MotoNav is paired but not advertising (already connected) — connecting directly")
+            stopScan()
+            connectDevice(bonded)
+        }
+    }
+
+    private val scanHintRunnable = Runnable {
+        if (state == State.SCANNING && scanning) {
+            log("Still scanning. Check the ESP32 is powered and shows \"Waiting for phone\". " +
+                "If MotoNav is listed under Paired devices in Android's Bluetooth settings, tap its gear " +
+                "and choose Forget, then press EN on the ESP32.")
+        }
+    }
+
     private fun stopScan() {
+        handler.removeCallbacks(bondedFallbackRunnable)
+        handler.removeCallbacks(scanHintRunnable)
         if (!scanning) return
         scanning = false
         try {
