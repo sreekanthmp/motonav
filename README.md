@@ -18,4 +18,4 @@ Start here: [`docs/ONE_HOUR_QUICKSTART.md`](docs/ONE_HOUR_QUICKSTART.md).
 | Protocol | Cross-checked firmware ↔ Android test bytes. |
 | Android app | Kotlin compiles against the real SDK/Android jars; 26 unit tests pass. Full Gradle build and phone run **not done yet**. Destination via **Share from Google Maps**. |
 
-Docs: [`ARCHITECTURE.md`](docs/ARCHITECTURE.md) · [`HARDWARE_AND_FLOW.md`](docs/HARDWARE_AND_FLOW.md) · [`PROTOTYPE_PLAN.md`](docs/PROTOTYPE_PLAN.md) · [`HARDWARE_ROADMAP.md`](docs/HARDWARE_ROADMAP.md) (**next: prototype → product**)
+Docs: [`ARCHITECTURE.md`](docs/ARCHITECTURE.md) · [`HARDWARE_AND_FLOW.md`](docs/HARDWARE_AND_FLOW.md) · [`PROTOTYPE_PLAN.md`](docs/PROTOTYPE_PLAN.md) · [`HARDWARE_ROADMAP.md`](docs/HARDWARE_ROADMAP.md) (**next: prototype → product**) · [`HARDWARE_PCB_GUIDE.md`](docs/HARDWARE_PCB_GUIDE.md) (parts, small PCB, costs)
