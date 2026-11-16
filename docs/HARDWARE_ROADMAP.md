@@ -88,6 +88,32 @@ official source before you spend money on them. Part numbers are starting candid
 - Biggest cost drivers: display, enclosure and tooling, battery, radio module, test and certification.
 - Plan a pilot run with an EMS partner; design a factory test jig and device-provisioning step.
 
+### J. Dev board vs your own PCB (Waveshare ESP32-S3-LCD-1.28 as the example)
+Specs from [Waveshare's product page](https://www.waveshare.com/esp32-s3-lcd-1.28.htm) (the wiki returned an error, so schematics/licence are **not confirmed**):
+ESP32-S3R2 **bare chip (not a pre-certified module)**, 16 MB flash, 2 MB PSRAM, 1.28" round IPS 240×240 (GC9A01A, **brightness not stated**), QMI8658 IMU, MX1.25 battery connector + ETA6096 charger, 800 mA LDO, USB-C (CH343P), BOOT/RESET buttons, 30 GPIO on 1.27 mm headers. **No waterproof rating, temperature range or certifications stated.**
+
+| Use it for | Do not rely on it for the final product |
+|------------|-------------------------------------------|
+| Prototype, firmware porting, sunlight test, a **small beta batch** (10–50 units) in a case | Waterproofing/vibration (open headers, unsealed USB-C) |
+| It already has the blocks we need: MCU, round display, IMU, battery charging | Radio certification (bare chip, so the finished product's radio must be tested) |
+| | Sunlight readability (typical GC9A01 modules are about 150–400 nits) |
+| | 12 V bike input (not provided), cost (dev-board price vs component cost), supply continuity |
+
+Plan: use it for the beta, then make **your own PCB** with the same blocks and a pre-certified module. Ask Waveshare about OEM/volume terms and check their licence before reusing their design.
+
+### K. Protecting your firmware and app
+- **Firmware:** by default you should assume a buyer with the device can copy it. Espressif's security docs describe the fixes ([flash encryption](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/security/flash-encryption.html), [secure boot v2](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/security/secure-boot-v2.html), [security overview](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/security/security.html)):
+  - **Flash encryption (release mode)** so a physical readout is not enough.
+  - **Secure boot v2** so only firmware signed with your key runs (also checked on OTA updates).
+  - **Disable ROM download mode and JTAG** (otherwise the protections can be bypassed).
+  - **Encrypt NVS** data.
+- **These burn eFuses: irreversible, and mistakes can brick the chip.** Never do it on your development boards. Keep signing keys offline and backed up. Test the full procedure on a few units first.
+- Espressif's pages configure this through **ESP-IDF** tools; **Arduino/PlatformIO support is not stated** there. Plan to move production firmware to ESP-IDF (or confirm an Arduino-as-component route).
+- None of it makes copying *impossible*; it makes it hard. Cloned hardware would still need its own firmware.
+- **App:** an APK can be decompiled. Use R8 obfuscation, Google Play distribution and the Play Integrity API; keep valuable logic off the phone if needed. The API key stays restricted to your app's package and signature.
+- **Repo:** keep the GitHub repository **private** if the code is proprietary, and check licences of all libraries and fonts you ship (e.g. NimBLE, U8g2 and its fonts).
+- **Business protection:** brand/trademark, design patents where possible, service, updates and quality matter as much as code secrecy.
+
 ---
 
 ## 4. Experiments to run first (cheap, highest value)
