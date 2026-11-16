@@ -3,7 +3,7 @@
 Receives navigation state from the phone over BLE and draws it on a 128×64 OLED.
 Protocol: [`../../protocol/README.md`](../../protocol/README.md).
 
-**Status:** compiles cleanly with PlatformIO (RAM 11.8%, flash 48.7%) for both display variants. Not yet flashed to real hardware — milestones M0/M1 below are the first real test.
+**Status:** compiles with PlatformIO and **runs on real hardware** (ESP32 DevKit V1 + 0.96" I2C OLED). Verified: display self-test, BLE link to the Android app, arrows/distance/street updates, and switching the display driver with a long BOOT press.
 
 ## Wiring
 

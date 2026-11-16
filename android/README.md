@@ -5,8 +5,9 @@ Small Kotlin app: connects to the ESP32 over BLE and forwards Google Navigation 
 **Status**
 
 - All Kotlin sources **compile without errors** with the Kotlin compiler against the **real** Navigation SDK 7.0.0 and Android 36 jars. Only the AndroidX classes used by `MainActivity` were checked against small stand-ins.
-- The **26 unit tests pass** (`ProtocolTest`, `ShareParserTest`).
-- A full **Gradle build was not run** (Maven Central rate-limited the build sandbox), and the app has **not been run on a phone**. The first Android Studio sync/build may still surface Gradle, resource or runtime issues — send me the first error lines.
+- The **31 unit tests pass** (`ProtocolTest`, `ShareParserTest`, `StatusTextTest`).
+- The app has been **built in Android Studio and run on a real phone** (Samsung SM-G781B). Verified there: Share from Google Maps, Navigation SDK guidance, the turn-by-turn feed, and Bluetooth to the ESP32.
+- **Not yet verified:** locked-screen behaviour over long rides, other phone brands.
 
 ## What you need
 
