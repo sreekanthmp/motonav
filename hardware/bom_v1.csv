@@ -1,0 +1,19 @@
+ref,function,candidate_part,alternative,key_notes,verification
+U1,MCU + Bluetooth LE module,Espressif ESP32-S3-MINI-1 (variant with PSRAM),ESP32-S3-WROOM-1,"3.3 V >=500 mA; native USB on GPIO19/20; module GPIO list, size, temperature and certification: read module datasheet",Espressif design guide read; module datasheet NOT read
+DISP1,1.43in round AMOLED 466x466 QSPI (non-touch),Panox TR143R2404A (CO5300),Waveshare 1.43in module (dev only),"Vendor listing: 700 cd/m2 typ; needs 1.8 V I/O + 3.3 V; confirm rails and FPC pinout with vendor",Search summary only; datasheet NOT read
+DISP2,Fallback 1.45in round IPS TFT ~412x412,TBD vendor,GC9A01 240x240 for dev,"Beeline Moto II uses 1.45in IPS 412x412; high-brightness custom panels may need large MOQ",Beeline spec from search summary
+U2,1S Li-ion charger + power path (I2C),TI BQ25186,TI BQ25188,"1 A; power path; ship mode (standby); verify input voltage and USB/pogo behaviour",Search summary of TI listing; datasheet NOT read
+U3,3.3 V buck-boost (>=1 A),TI TPS63802 class,TPS63900 / equivalent,"Keeps 3.3 V down to ~3.0 V battery; verify Iq and current limit",General knowledge; verify
+U4,1.8 V LDO for display I/O,TI TLV755P 1.8 V class,Any low-noise 1.8 V LDO,"Only if the panel needs a separate 1.8 V I/O rail",General knowledge; verify
+U5,Battery fuel gauge (I2C),Maxim MAX17048,ST STC3115,"No sense resistor; reports %",General knowledge; verify
+U6,6-axis IMU (I2C),Bosch BMI270,QST QMI8658C (on Waveshare board) / ST LSM6DSO,"Motion wake/sleep, orientation",General knowledge; verify
+U7,3-axis magnetometer (I2C),Bosch BMM350,ST LIS2MDL,"Place far from battery/magnets; calibration needed",General knowledge; verify
+U8,Ambient light sensor (I2C),Vishay VEML7700,TI OPT3001,"Behind a light pipe/window",General knowledge; verify
+J1,USB-C receptacle (sealed or gasketed),16-pin waterproof USB-C,Standard USB-C + silicone plug,"5.1 kOhm CC resistors; service/charging port",General knowledge; verify
+D1,USB ESD protection,USBLC6-2SC6,Equivalent low-capacitance TVS,"On D+/D-",General knowledge; verify
+D2,ESD/surge TVS on pogo 5 V,SMF5.0A class TVS,,"Exposed contacts; plus PTC/fuse and reverse-polarity protection",General knowledge; verify
+J2,Pogo pin contacts (mount power),2-4 pin spring pogo set,Magnetic pogo connector,"Gold-plated; sealed/potted; polarity keyed",General knowledge; verify
+BT1,LiPo cell 1S ~600-700 mAh with protection + NTC,603035-size pouch (verify exact dimensions),,"Keep out of antenna sector; check mechanical fit; certified cell/pack",General knowledge; verify
+SW1-4,Sealed tactile switches (4),Silicone-dome rocker with tact switches,,"Glove-friendly travel and force; IP67 sealing",General knowledge; verify
+H1,Pressure-equalising vent,ePTFE membrane vent,,"Prevents fogging and seal stress",General knowledge; verify
+M1,Housing + gasket + lens,Plastic housing (v1),,"Antenna sector must be plastic-only; metal variant later",Design decision

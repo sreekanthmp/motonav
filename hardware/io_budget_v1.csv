@@ -1,0 +1,17 @@
+function,signal,count,direction,notes
+Display,QSPI CS/CLK/D0-D3,6,out/inout,"Use the QSPI-capable pins from the module datasheet; keep traces short and length-matched"
+Display,RESET,1,out,
+Display,TE (tearing effect),1,in,optional
+Display,Power enable (rail control),1,out,optional
+I2C bus,"SDA/SCL (IMU, mag, ALS, gauge, charger)",2,inout,"Pull-ups; 400 kHz; one bus is enough"
+Interrupts,IMU INT,1,in,wake from sleep
+Interrupts,Magnetometer DRDY,1,in,optional
+Interrupts,ALS INT,1,in,optional
+Interrupts,Fuel gauge ALERT,1,in,low battery
+Interrupts,Charger INT / CHG status / power-good,2,in,"pogo/USB present, charging, fault"
+Buttons,4 buttons,4,in,"RTC-capable GPIOs preferred to wake from deep sleep"
+USB,D- / D+ (GPIO19/GPIO20),2,inout,"Native USB for flashing/serial; 22-33 ohm series; 90 ohm differential"
+UART0,TX/RX (GPIO43/GPIO44),2,inout,"Factory test and logs; 499 ohm series on TX"
+Boot,GPIO0 (BOOT) + EN (reset),2,in,"Strapping pins: GPIO0/GPIO3/GPIO45/GPIO46 - do not load them with other circuits"
+Optional,Status LED,1,out,optional
+TOTAL (approx),"27 GPIOs (22 without the optional ones); EN is a pin, not a GPIO",27,,"Check against the module's available GPIO count; use an I2C expander if short"
