@@ -57,10 +57,16 @@ object NavMapper {
 
     fun isRoundabout(deviceManeuver: Int): Boolean = deviceManeuver == Man.ROUNDABOUT
 
-    fun mode(sdkNavState: Int, arrived: Boolean): Int = when {
+    /**
+     * [hasStep]: the feed carries a current step. If the SDK reports an UNKNOWN state but there is a step to
+     * show (e.g. right after guidance starts), show it instead of an idle screen on the device.
+     */
+    fun mode(sdkNavState: Int, arrived: Boolean, hasStep: Boolean = false): Int = when {
         arrived -> Mode.ARRIVED
-        sdkNavState == NavState.ENROUTE -> Mode.NAV
         sdkNavState == NavState.REROUTING -> Mode.REROUTING
+        sdkNavState == NavState.ENROUTE -> Mode.NAV
+        sdkNavState == NavState.STOPPED -> Mode.IDLE
+        hasStep -> Mode.NAV
         else -> Mode.IDLE
     }
 
@@ -70,4 +76,58 @@ object NavMapper {
     /** m/s -> km/h in 0.1 units. */
     fun speedKmhX10(metersPerSecond: Float): Int =
         if (metersPerSecond <= 0f) 0 else Math.round(metersPerSecond * 3.6f * 10f)
+
+    // ---- text for the phone screen -------------------------------------------------------
+
+    fun maneuverText(deviceManeuver: Int): String = when (deviceManeuver) {
+        Man.DEPART -> "Head off"
+        Man.STRAIGHT -> "Continue straight"
+        Man.SLIGHT_LEFT -> "Bear slightly left"
+        Man.LEFT -> "Turn left"
+        Man.SHARP_LEFT -> "Turn sharp left"
+        Man.SLIGHT_RIGHT -> "Bear slightly right"
+        Man.RIGHT -> "Turn right"
+        Man.SHARP_RIGHT -> "Turn sharp right"
+        Man.UTURN_LEFT, Man.UTURN_RIGHT -> "Make a U-turn"
+        Man.KEEP_LEFT -> "Keep left"
+        Man.KEEP_RIGHT -> "Keep right"
+        Man.MERGE -> "Merge"
+        Man.RAMP_LEFT -> "Take the ramp on the left"
+        Man.RAMP_RIGHT -> "Take the ramp on the right"
+        Man.ROUNDABOUT -> "Roundabout"
+        Man.FERRY -> "Take the ferry"
+        Man.ARRIVE, Man.ARRIVE_LEFT, Man.ARRIVE_RIGHT -> "Arrive at destination"
+        else -> "Continue"
+    }
+
+    fun distanceText(meters: Int): String = when {
+        meters < 1000 -> "$meters m"
+        meters < 10_000 -> String.format(java.util.Locale.US, "%.1f km", meters / 1000.0)
+        else -> "${(meters + 500) / 1000} km"
+    }
+
+    /** One readable status for the phone screen: what the device is being told right now. */
+    fun statusLine(
+        mode: Int,
+        maneuver: Int,
+        roundaboutExit: Int,
+        distToManeuverM: Int,
+        street: String,
+        remainingM: Int,
+        etaMinutes: Int,
+    ): String = when (mode) {
+        Mode.NAV -> {
+            val what = if (maneuver == Man.ROUNDABOUT && roundaboutExit > 0) {
+                "Roundabout: take exit $roundaboutExit"
+            } else {
+                maneuverText(maneuver)
+            }
+            val onto = if (street.isNotEmpty()) " onto $street" else ""
+            "In ${distanceText(distToManeuverM)}: $what$onto\n${distanceText(remainingM)} left · $etaMinutes min"
+        }
+        Mode.REROUTING -> "Rerouting…"
+        Mode.OFF_ROUTE -> "Off route…"
+        Mode.ARRIVED -> "You have arrived"
+        else -> "Not navigating"
+    }
 }

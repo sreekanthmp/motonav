@@ -20,12 +20,21 @@ class NavInfoReceivingService : Service() {
     private val messenger = Messenger(Handler(Looper.getMainLooper()) { msg ->
         if (msg.what == TurnByTurnManager.MSG_NAV_INFO) {
             val navInfo = turnByTurnManager.readNavInfoFromBundle(msg.data)
-            if (navInfo != null) NavBridge.onNavInfo(navInfo)
+            if (navInfo != null) NavBridge.onNavInfo(navInfo) else NavBridge.log("TBT feed: empty NavInfo message")
             true
         } else {
+            NavBridge.log("TBT feed: unexpected message code ${msg.what}")
             false
         }
     })
 
-    override fun onBind(intent: Intent?): IBinder = messenger.binder
+    override fun onBind(intent: Intent?): IBinder {
+        NavBridge.log("Google Navigation connected to the turn-by-turn service")
+        return messenger.binder
+    }
+
+    override fun onUnbind(intent: Intent?): Boolean {
+        NavBridge.log("Google Navigation disconnected from the turn-by-turn service")
+        return super.onUnbind(intent)
+    }
 }

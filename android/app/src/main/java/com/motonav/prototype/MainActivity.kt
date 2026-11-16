@@ -26,6 +26,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvLog: TextView
     private lateinit var tvDestName: TextView
     private lateinit var tvDestInfo: TextView
+    private lateinit var tvNavStatus: TextView
     private lateinit var etDest: EditText
     private lateinit var etStart: EditText
     private lateinit var swTwoWheeler: Switch
@@ -49,11 +50,13 @@ class MainActivity : AppCompatActivity() {
         tvLog = findViewById(R.id.tvLog)
         tvDestName = findViewById(R.id.tvDestName)
         tvDestInfo = findViewById(R.id.tvDestInfo)
+        tvNavStatus = findViewById(R.id.tvNavStatus)
         etDest = findViewById(R.id.etDest)
         etStart = findViewById(R.id.etStart)
         swTwoWheeler = findViewById(R.id.swTwoWheeler)
 
         NavBridge.log = this::log
+        NavBridge.onStatus = this::showStatus
         ble = BleClient(
             applicationContext,
             log = this::log,
@@ -69,13 +72,17 @@ class MainActivity : AppCompatActivity() {
 
         // Destination
         click(R.id.btnStartNav) { startNavigation(simulate = false) }
-        click(R.id.btnStop) { stopTest(); nav?.stop() }
+        click(R.id.btnStop) {
+            stopTest()
+            nav?.stop()
+            showStatus("Not navigating")
+        }
 
         // Advanced / testing
         click(R.id.btnInitNav) {
             askPermissions()
-            val controller = nav ?: NavController(this, this::log).also { nav = it }
-            controller.whenReady { log("Ready: share a place from Google Maps, then Start navigation") }
+            val controller = nav ?: NavController(this, this::log, this::showStatus).also { nav = it }
+            controller.whenReady { showStatus("Google Navigation is ready. Share a place, then Start navigation.") }
         }
         click(R.id.btnSim) { startNavigation(simulate = true) }
 
@@ -113,6 +120,11 @@ class MainActivity : AppCompatActivity() {
             while (logLines.size > 60) logLines.removeFirst()
             tvLog.text = logLines.joinToString("\n")
         }
+    }
+
+    /** Live "what is navigation doing" text next to the Start button. */
+    private fun showStatus(text: String) {
+        runOnUiThread { tvNavStatus.text = text }
     }
 
     private fun onBleState(state: BleClient.State) {
@@ -226,13 +238,15 @@ class MainActivity : AppCompatActivity() {
         stopTest()
         val dest = Coords.parse(etDest.text.toString())
         if (dest == null) {
+            showStatus("No destination yet. In Google Maps tap Share → MotoNav, or type lat,lng under Advanced.")
             log("No destination yet — share a place from Google Maps, or type lat,lng under Advanced")
             return
         }
         val start = Coords.parse(etStart.text.toString())
         if (!ble.isConnected) log("Note: the MotoNav display is not connected (press Connect)")
+        showStatus("Starting…")
 
-        val controller = nav ?: NavController(this, this::log).also { nav = it }
+        val controller = nav ?: NavController(this, this::log, this::showStatus).also { nav = it }
         controller.whenReady {
             controller.start(
                 simulate = simulate,

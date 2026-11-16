@@ -15,12 +15,17 @@ import com.google.android.libraries.navigation.Waypoint
  * Thin wrapper around the Google Navigation SDK:
  *  init (shows Google's terms dialog once) -> setDestination -> startGuidance [-> simulator].
  * The turn-by-turn data itself arrives in [NavInfoReceivingService].
+ *
+ * [onStatus] receives short human-readable progress/failure messages for the phone screen.
  */
 class NavController(
     private val activity: Activity,
     private val log: (String) -> Unit,
+    private val onStatus: (String) -> Unit = {},
 ) {
     private var navigator: Navigator? = null
+    private var feedRegistered = false
+    private val handler = android.os.Handler(android.os.Looper.getMainLooper())
     private var initializing = false
     private val waiting = mutableListOf<() -> Unit>()
 
@@ -41,6 +46,7 @@ class NavController(
         waiting += action
         if (initializing) return
         initializing = true
+        onStatus("Starting Google Navigation… (accept Google's terms if asked)")
         initSdk()
     }
 
@@ -65,8 +71,10 @@ class NavController(
                 val registered = navigator.registerServiceForNavUpdates(
                     activity.packageName, NavInfoReceivingService::class.java.name, 1,
                 )
+                feedRegistered = registered
                 NavigationApi.getRoadSnappedLocationProvider(app)?.addLocationListener(locationListener)
                 log("Navigator ready. Turn-by-turn feed registered = $registered")
+                if (!registered) onStatus("Google Navigation did not accept the turn-by-turn feed registration")
                 initializing = false
                 val pending = waiting.toList()
                 waiting.clear()
@@ -86,6 +94,7 @@ class NavController(
                     else -> "error $errorCode"
                 }
                 log("Navigator error: $why")
+                onStatus("Google Navigation could not start:\n$why")
             }
         })
     }
@@ -94,6 +103,7 @@ class NavController(
         val nav = navigator
         if (nav == null) {
             log("Navigation SDK is not ready yet")
+            onStatus("Google Navigation is not ready yet")
             return
         }
         NavBridge.reset()
@@ -106,6 +116,7 @@ class NavController(
         if (simulate) {
             if (start == null) {
                 log("Enter a valid start lat,lng for the simulation")
+                onStatus("Enter a valid start lat,lng under Advanced")
                 return
             }
             nav.simulator.setUserLocation(start)
@@ -114,15 +125,42 @@ class NavController(
         }
 
         log("Requesting route (${if (twoWheeler) "two-wheeler" else "driving"}, ${if (simulate) "simulated" else "real GPS"})...")
+        onStatus("Finding a route…")
         nav.setDestination(waypoint, options).setOnResultListener { status ->
             if (status == Navigator.RouteStatus.OK) {
                 nav.startGuidance()
                 if (simulate) nav.simulator.simulateLocationsAlongExistingRoute(SimulationOptions().speedMultiplier(3f))
                 log("Guidance started")
+                onStatus("Route found. Waiting for the first instruction…")
+                watchForSilentFeed()
             } else {
                 log("Route request failed: $status")
+                onStatus("Could not start: $status" + hint(status))
             }
         }
+    }
+
+    /** If guidance started but no turn-by-turn data arrives, say so instead of leaving the screen silent. */
+    private fun watchForSilentFeed() {
+        val before = NavBridge.messageCount
+        handler.postDelayed({
+            if (NavBridge.messageCount == before) {
+                val msg = "No turn-by-turn data received from Google after 10 s " +
+                    "(feed registered = $feedRegistered). Go outdoors for a GPS fix and keep this screen open."
+                log(msg)
+                onStatus(msg)
+            }
+        }, 10_000)
+    }
+
+    private fun hint(status: Navigator.RouteStatus): String = when (status) {
+        Navigator.RouteStatus.LOCATION_UNKNOWN, Navigator.RouteStatus.LOCATION_DISABLED ->
+            "\nNo GPS fix yet: go outdoors, turn Location on, and try again."
+        Navigator.RouteStatus.NO_ROUTE_FOUND ->
+            "\nNo route to that place. Try turning off Two-wheeler routing under Advanced."
+        Navigator.RouteStatus.NETWORK_ERROR -> "\nCheck your internet connection."
+        Navigator.RouteStatus.QUOTA_CHECK_FAILED -> "\nCheck billing and quota in Google Cloud."
+        else -> ""
     }
 
     fun stop() {

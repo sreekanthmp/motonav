@@ -81,6 +81,16 @@
                 android:text="Stop" />
         </LinearLayout>
 
+        <!-- Live navigation status: what the display is being told right now -->
+        <TextView
+            android:id="@+id/tvNavStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Not navigating"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
         <!-- Advanced / testing -->
         <TextView
             android:layout_width="match_parent"

@@ -93,6 +93,10 @@ class ProtocolTest {
         assertEquals(Mode.REROUTING, NavMapper.mode(NavState.REROUTING, false))
         assertEquals(Mode.IDLE, NavMapper.mode(NavState.STOPPED, false))
         assertEquals(Mode.ARRIVED, NavMapper.mode(NavState.ENROUTE, true))
+        // unknown state with a step to show -> navigation screen, not idle
+        assertEquals(Mode.NAV, NavMapper.mode(NavState.UNKNOWN, false, hasStep = true))
+        assertEquals(Mode.IDLE, NavMapper.mode(NavState.UNKNOWN, false))
+        assertEquals(Mode.IDLE, NavMapper.mode(NavState.STOPPED, false, hasStep = true))
     }
 
     @Test

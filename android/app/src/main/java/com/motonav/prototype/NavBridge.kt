@@ -12,10 +12,17 @@ object NavBridge {
     @Volatile var ble: BleClient? = null
     @Volatile var log: (String) -> Unit = {}
 
+    /** Readable "what is happening now" text for the phone screen. */
+    @Volatile var onStatus: (String) -> Unit = {}
+
     /** Latest speed from the road-snapped location (NavInfo has no speed). */
     @Volatile var speedKmhX10: Int = 0
 
     @Volatile var arrived: Boolean = false
+
+    /** How many NavInfo messages arrived from the Navigation SDK so far (used to detect a silent feed). */
+    @Volatile var messageCount: Int = 0
+        private set
 
     private var seq = 0
     private var lastStreet = ""
@@ -30,7 +37,8 @@ object NavBridge {
         val distToStep = info.distanceToCurrentStepMeters ?: 0
         val remaining = info.distanceToFinalDestinationMeters ?: info.distanceToNextDestinationMeters ?: 0
         val etaSec = info.timeToFinalDestinationSeconds ?: info.timeToNextDestinationSeconds
-        val mode = NavMapper.mode(info.navState, arrived)
+        val mode = NavMapper.mode(info.navState, arrived, hasStep = step != null)
+        messageCount++
 
         val core = NavProtocol.encodeCore(
             mode = mode,
@@ -49,6 +57,11 @@ object NavBridge {
             ble?.sendStreet(street.toByteArray(Charsets.US_ASCII))
         }
         ble?.sendCore(core)
+
+        val line = NavMapper.statusLine(
+            mode, deviceManeuver, exit, distToStep, street, remaining, NavMapper.etaMinutes(etaSec),
+        )
+        onStatus(line + if (ble?.isConnected == true) "" else "\n(MotoNav display not connected)")
 
         val now = System.currentTimeMillis()
         if (now - lastLogMs >= 2000) {   // keep the on-screen log readable
@@ -72,6 +85,7 @@ object NavBridge {
             speedKmhX10 = speedKmhX10,
         )
         ble?.sendCore(core)
+        onStatus(NavMapper.statusLine(mode, Man.NONE, 0, 0, "", 0, 0))
     }
 
     /** Called when the phone (re)connects to the device so it gets the current street name again. */
