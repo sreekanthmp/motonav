@@ -14,7 +14,9 @@ Protocol: [`../../protocol/README.md`](../../protocol/README.md).
 | SDA | GPIO21 |
 | SCL | GPIO22 |
 
-If the screen stays blank, change `OLED_I2C_ADDR` to `0x3D` in `src/config.h`. If it is a 1.3" SH1106 (not 0.96" SSD1306), build the `esp32dev_sh1106` environment.
+At boot the firmware scans the I2C bus, picks the display address (0x3C or 0x3D) automatically, and prints what it finds on the serial monitor. If it finds nothing on GPIO21/22 it also searches other pin pairs and tells you where the display is really wired.
+
+**Blank or garbled screen?** Cheap "SSD1306" modules are often SH1106 or clones. **Hold the BOOT button for 2 seconds and release** to switch to the next display driver (SSD1306 → SH1106 → SSD1306 alt). The screen shows the driver name; the choice is remembered after a reboot. No re-flash needed. At every boot you also get a quick self-test: all pixels on, then a frame with the driver name.
 
 ## Build and flash
 
@@ -52,8 +54,8 @@ Serial monitor prints every packet it accepts or rejects.
 
 | Symptom | Likely cause |
 |---------|--------------|
-| Blank screen | Wrong I2C address (try `0x3D`), SDA/SCL swapped, or SH1106 module |
-| Garbled/shifted picture | SH1106 module — use `pio run -e esp32dev_sh1106 -t upload` |
+| Serial says `NO I2C DEVICE FOUND` | Wiring/power. The serial log also says where the display answers (SDA/SCL may be swapped) |
+| Display found but screen blank or garbled | Hold BOOT 2 s and release to switch display driver |
 | Phone can't find "MotoNav" | Not advertising — check serial log; reset the board |
 | `NavCore REJECTED` in serial log | Wrong length (must be 18 bytes) or first byte is not `01` |
 | Upload fails | Hold BOOT while "Connecting..." shows; try another USB cable (data, not charge-only) |

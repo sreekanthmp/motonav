@@ -7,11 +7,50 @@
 
 #include "config.h"
 
+#include <Preferences.h>
+
+// Cheap "0.96 inch SSD1306" modules are often SH1106 or clones with a different init sequence, which
+// shows up as a blank or garbled screen. So the driver is chosen at run time (long-press BOOT cycles
+// through them and the choice is remembered). The three driver objects exist side by side; constructing
+// them does not touch the hardware.
+enum DriverKind : uint8_t { DRV_SSD1306 = 0, DRV_SH1106 = 1, DRV_SSD1306_ALT0 = 2, DRV_COUNT = 3 };
+static const char *const DRIVER_NAMES[DRV_COUNT] = {"SSD1306", "SH1106", "SSD1306 alt"};
+
+static U8G2_SSD1306_128X64_NONAME_F_HW_I2C g_ssd1306(U8G2_R0, U8X8_PIN_NONE, OLED_SCL_PIN, OLED_SDA_PIN);
+static U8G2_SH1106_128X64_NONAME_F_HW_I2C g_sh1106(U8G2_R0, U8X8_PIN_NONE, OLED_SCL_PIN, OLED_SDA_PIN);
+static U8G2_SSD1306_128X64_ALT0_F_HW_I2C g_ssd1306Alt(U8G2_R0, U8X8_PIN_NONE, OLED_SCL_PIN, OLED_SDA_PIN);
+
+static U8G2 *g_d = &g_ssd1306;
+static DriverKind g_kind = DRV_SSD1306;
+static uint8_t g_addr = OLED_I2C_ADDR;
+
+// All drawing code below says `u8g2`; it always means the currently selected driver.
+#define u8g2 (*g_d)
+
 #ifdef OLED_SH1106
-static U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE, OLED_SCL_PIN, OLED_SDA_PIN);
+static const DriverKind DEFAULT_DRIVER = DRV_SH1106;
 #else
-static U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE, OLED_SCL_PIN, OLED_SDA_PIN);
+static const DriverKind DEFAULT_DRIVER = DRV_SSD1306;
 #endif
+
+static DriverKind loadDriverKind() {
+  DriverKind kind = DEFAULT_DRIVER;
+  Preferences prefs;
+  if (prefs.begin("motonav", true)) {
+    uint8_t v = prefs.getUChar("drv", 255);
+    if (v < DRV_COUNT) kind = (DriverKind)v;
+    prefs.end();
+  }
+  return kind;
+}
+
+static void saveDriverKind(DriverKind kind) {
+  Preferences prefs;
+  if (prefs.begin("motonav", false)) {
+    prefs.putUChar("drv", (uint8_t)kind);
+    prefs.end();
+  }
+}
 
 // Layout (128x64): arrow area x 0..47, y 0..47 | text column x 52..127 | status bar y 50..63
 static const int ARROW_W = 48;
@@ -272,16 +311,42 @@ static uint8_t detectOledAddress() {
   return found;
 }
 
+static void startDriver(DriverKind kind) {
+  g_kind = kind;
+  g_d = (kind == DRV_SH1106) ? (U8G2 *)&g_sh1106 : (kind == DRV_SSD1306_ALT0) ? (U8G2 *)&g_ssd1306Alt : (U8G2 *)&g_ssd1306;
+  u8g2.setI2CAddress(g_addr << 1);
+  u8g2.begin();
+  u8g2.setBusClock(OLED_I2C_HZ);
+  u8g2.setContrast(255);
+  Serial.printf("[oled] driver: %s, I2C %u Hz, address 0x%02X\n", DRIVER_NAMES[kind], (unsigned)OLED_I2C_HZ, g_addr);
+
+  // Self-test: first every pixel on (proves the display shows anything at all), then a frame with text.
+  u8g2.clearBuffer();
+  u8g2.drawBox(0, 0, 128, 64);
+  u8g2.sendBuffer();
+  delay(500);
+  u8g2.clearBuffer();
+  u8g2.drawFrame(0, 0, 128, 64);
+  drawCentered("MotoNav", 30, u8g2_font_helvB14_tf);
+  drawCentered(DRIVER_NAMES[kind], 50, u8g2_font_6x10_tf);
+  u8g2.sendBuffer();
+  delay(800);
+}
+
 void uiInit() {
   uint8_t addr = detectOledAddress();
-  if (!addr) addr = OLED_I2C_ADDR;   // fall back to the configured address
-  Serial.printf("[oled] using address 0x%02X\n", addr);
-  u8g2.setI2CAddress(addr << 1);
-  u8g2.begin();
-  u8g2.setBusClock(400000);
-  u8g2.clearBuffer();
-  drawCentered("MotoNav", 36, u8g2_font_helvB14_tf);
-  u8g2.sendBuffer();
+  if (addr) g_addr = addr;   // otherwise keep the configured address
+  Serial.printf("[oled] using address 0x%02X\n", g_addr);
+  startDriver(loadDriverKind());
+  Serial.println("[oled] If the screen is blank or garbled: HOLD the BOOT button for 2 seconds and release "
+                 "to try the next display driver (remembered after reboot).");
+}
+
+void uiNextDriver() {
+  DriverKind next = (DriverKind)((g_kind + 1) % DRV_COUNT);
+  saveDriverKind(next);
+  Serial.printf("[oled] switching display driver: %s -> %s\n", DRIVER_NAMES[g_kind], DRIVER_NAMES[next]);
+  startDriver(next);
 }
 
 void uiRender(const NavSnapshot &s) {

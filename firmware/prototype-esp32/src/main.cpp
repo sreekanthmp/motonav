@@ -75,11 +75,18 @@ void loop() {
   static uint32_t lastFrame = 0;
   uint32_t now = millis();
 
+  static uint32_t pressedAt = 0;
   bool level = digitalRead(BUTTON_PIN);
   if (level != prevLevel && now - lastEdge > 40) {
     lastEdge = now;
     prevLevel = level;
-    if (!level) onButton();   // pressed (active low)
+    if (!level) {
+      pressedAt = now;                         // pressed (active low)
+    } else if (now - pressedAt >= LONG_PRESS_MS) {
+      uiNextDriver();                          // long press: try the next display driver
+    } else {
+      onButton();                              // short press: demo screen / button event
+    }
   }
 
   if (now - lastFrame >= UI_FRAME_MS) {
