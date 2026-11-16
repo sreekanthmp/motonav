@@ -207,7 +207,49 @@ static void screenMessage(const NavSnapshot &s, const char *title, const char *s
 // Public API
 // ---------------------------------------------------------------------------
 // Scans the I2C bus, lists every device it hears and returns the OLED address (0x3C or 0x3D), or 0.
+// OLED modules pull SDA and SCL up to their supply. With the ESP32's weak internal pull-DOWN enabled,
+// a pin that still reads HIGH is really connected to a powered display; a pin that reads LOW is not.
+static void probePin(const char *name, int pin) {
+  pinMode(pin, INPUT_PULLDOWN);
+  delay(10);
+  if (digitalRead(pin)) {
+    Serial.printf("[oled] %s GPIO%d: HIGH -> pulled up by the display, this wire looks connected and powered\n", name, pin);
+  } else {
+    Serial.printf("[oled] %s GPIO%d: LOW -> nothing pulls it up: the wire is not on the display's %s pin, is broken, "
+                  "or the display has no power (VCC/GND)\n", name, pin, name);
+  }
+}
+
+// Tries every pair of common free GPIOs as SDA/SCL and reports where a display answers.
+static void huntForDisplay() {
+  static const uint8_t pins[] = {4, 5, 13, 14, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33};
+  Serial.println("[oled] searching other pin pairs for the display (this shows where it is really wired)...");
+  bool any = false;
+  for (uint8_t sda : pins) {
+    for (uint8_t scl : pins) {
+      if (sda == scl) continue;
+      Wire.end();
+      if (!Wire.begin(sda, scl, 100000)) continue;
+      Wire.setTimeOut(5);   // keep the search quick when nothing answers
+      for (uint8_t addr : {(uint8_t)0x3C, (uint8_t)0x3D}) {
+        Wire.beginTransmission(addr);
+        if (Wire.endTransmission() == 0) {
+          Serial.printf("[oled] FOUND a display at 0x%02X with SDA=GPIO%d and SCL=GPIO%d\n", addr, sda, scl);
+          any = true;
+        }
+      }
+    }
+  }
+  Wire.end();
+  if (!any) {
+    Serial.println("[oled] no display answered on any common pin pair -> check VCC/GND, replace the jumper wires, "
+                   "or the display module may be faulty");
+  }
+}
+
 static uint8_t detectOledAddress() {
+  probePin("SDA", OLED_SDA_PIN);
+  probePin("SCL", OLED_SCL_PIN);
   Wire.begin(OLED_SDA_PIN, OLED_SCL_PIN);
   Serial.printf("[oled] scanning I2C bus (SDA=GPIO%d, SCL=GPIO%d)...\n", OLED_SDA_PIN, OLED_SCL_PIN);
   uint8_t found = 0;
@@ -223,6 +265,7 @@ static uint8_t detectOledAddress() {
   if (count == 0) {
     Serial.println("[oled] NO I2C DEVICE FOUND -> check wiring: VCC=3V3, GND=GND, SDA=GPIO21, SCL=GPIO22 "
                    "(and that the wires are firmly in the pins)");
+    huntForDisplay();
   } else if (!found) {
     Serial.println("[oled] devices found, but none at 0x3C/0x3D -> is this really an SSD1306 OLED?");
   }
