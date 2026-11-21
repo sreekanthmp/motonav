@@ -57,4 +57,8 @@ dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 
     testImplementation("junit:junit:4.13.2")
+
+    // A real org.json for local unit tests: the one in the Android stub jar returns empty values.
+    // Only the route parser tests (route/OsrmRouteParserTest) need it; the app itself uses the platform's.
+    testImplementation("org.json:json:20240303")
 }

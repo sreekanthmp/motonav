@@ -70,6 +70,57 @@ Navigation SDK ──(Messenger, ~1/s)──► NavInfoReceivingService ──�
 | `NavProtocol.kt` | Byte encoding of the BLE messages (mirror of `protocol/nav_protocol.h`) |
 | `BleClient.kt` | Scan, connect, auto-reconnect, latest-wins write queue |
 | `MainActivity.kt` | Buttons, permissions, on-screen log |
+| `route/` | **Route follower**: guidance data from any routing service instead of Google's SDK (see below) |
+
+## Route follower: the device's data without Google's Navigation SDK
+
+The device only *displays*; it never navigates. `route/` produces the same values the Navigation SDK feed gives
+(next manoeuvre, distance to it, street, distance left, ETA) from **a route fetched from any routing service
+plus the phone's GPS fixes**. It speaks no instructions and draws no map. It is plain Kotlin with no Android or
+Google imports, so it runs in ordinary JVM unit tests.
+
+```
+routing service ──JSON──► OsrmRouteParser ──► Route ──┐
+                                                      ├─► RouteFollower.update(fix) ──► Snapshot ──► encodeCore() ──► BleClient
+phone GPS fix (lat, lon, time, speed, accuracy, bearing) ─┘
+```
+
+| File | Role |
+|------|------|
+| `route/Route.kt` | A route: points, manoeuvre steps, planned durations. Adds a missing DEPART/ARRIVE |
+| `route/RouteFollower.kt` | Snaps each GPS fix to the route; returns mode, manoeuvre, distance, street, remaining, ETA |
+| `route/OsrmRouteParser.kt` | OSRM/Mapbox-style response (`steps=true`, `geometries=polyline6`) → `Route` |
+| `route/PolylineCodec.kt`, `route/Geo.kt` | Encoded-polyline codec and distance maths |
+
+**Using it** (this wiring is not in the app yet):
+
+```kotlin
+val follower = RouteFollower(OsrmRouteParser.parse(responseJson))     // polyline6 geometry
+// on every location update:
+val s = follower.update(RouteFollower.Fix(loc.latitude, loc.longitude, loc.elapsedRealtimeNanos / 1_000_000,
+    if (loc.hasSpeed()) loc.speed.toDouble() else null,
+    if (loc.hasAccuracy()) loc.accuracy.toDouble() else null,
+    if (loc.hasBearing()) loc.bearing.toDouble() else null))
+ble.sendCore(s.encodeCore(seq++)); if (street changed) ble.sendStreet(s.encodeStreet())
+if (s.mode == NavProtocol.Mode.OFF_ROUTE) { follower.markRerouting(); /* fetch a route from here */ follower.replaceRoute(newRoute) }
+```
+
+What it handles: off route after 5 s more than 40 m away (then rerouting), arrival within 25 m, GPS noise (a fix
+never moves progress backwards by jitter), fixes with poor accuracy (ignored), gaps such as tunnels, routes that
+cross or overlap themselves, out-and-back roads (the fix's **bearing** tells the two lanes apart, so always pass
+it), and an ETA scaled by the rider's real pace. U-turns are right-hand turns in left-hand traffic (India). All
+thresholds are in `RouteFollower.Config` and are starting values to tune on real rides.
+
+**Known limits / not verified**
+
+- The parser is checked against **hand-written responses that follow OSRM's documented format**, not against live
+  Ola Maps, Mappls or OSRM responses. Before relying on a service, run one real Indian route through it and check
+  street names, roundabouts and U-turns. Ola Maps' exact response schema is unconfirmed.
+- Via-points (more than one leg) are not announced; only the final destination is.
+- Straight-ahead "new name" steps are kept (as the Google mapper does), so a long route can show many of them.
+- Street names missing in the map data show as empty (an unnamed road with a reference, e.g. "NH 48", shows the reference).
+- The 57 unit tests (`app/src/test/.../route/`) pass standalone on JDK 21 with Kotlin 2.1.0. They have **not yet
+  been run inside this Android Gradle build** (needs the Android SDK): run `./gradlew :app:testDebugUnitTest`.
 
 ## Bluetooth: don't pair MotoNav in Android's Bluetooth settings
 

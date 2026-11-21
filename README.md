@@ -17,6 +17,7 @@ Start here: [`docs/ONE_HOUR_QUICKSTART.md`](docs/ONE_HOUR_QUICKSTART.md).
 | ESP32 firmware | **Works on real hardware** (ESP32 DevKit V1 + 0.96" I2C OLED): BLE link, arrows/distance/street, display driver switch (long-press BOOT). |
 | Protocol | Cross-checked firmware ↔ Android test bytes and proven end to end. |
 | Android app | **Runs on a real phone** (Samsung SM-G781B): Google Navigation SDK turn-by-turn feed verified, destination via **Share from Google Maps**, 31 unit tests pass. |
+| Route follower | **Built, not wired into the app yet.** Turns any routing service's route plus GPS fixes into the same device data as Google's SDK. 57 JVM unit tests pass standalone; parser not yet checked against live Ola Maps / Mappls responses. See `android/README.md`. |
 | Still to prove | Locked-screen reliability, sunlight readability, battery life, vibration/waterproofing — see `docs/HARDWARE_ROADMAP.md`. |
 
 Docs: [`ARCHITECTURE.md`](docs/ARCHITECTURE.md) · [`HARDWARE_AND_FLOW.md`](docs/HARDWARE_AND_FLOW.md) · [`PROTOTYPE_PLAN.md`](docs/PROTOTYPE_PLAN.md) · [`HARDWARE_ROADMAP.md`](docs/HARDWARE_ROADMAP.md) (**next: prototype → product**) · [`HARDWARE_PCB_GUIDE.md`](docs/HARDWARE_PCB_GUIDE.md) (parts, small PCB, costs) · [`GO_TO_MARKET_PLAN.md`](docs/GO_TO_MARKET_PLAN.md) (prototype → selling) · [`PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md) (spec draft, rider interviews, landing page) · [`DEVICE_DESIGN_V1.md`](docs/DEVICE_DESIGN_V1.md) (**production-intent hardware design**, with `hardware/` BOM and I/O budget)
