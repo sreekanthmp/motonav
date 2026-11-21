@@ -1,5 +1,12 @@
 # MotoNav device design v1: a Beeline-Moto-II-class product
 
+> **Update, November 2026.** Decisions made since this was written; the parts list is now `hardware/bom_v2.csv`:
+> - **Display:** round **IPS TFT 1.45" 412x412 (QSPI), 800+ nit, optically bonded**, instead of AMOLED. Bike clusters and Beeline use backlit TFT. AMOLED stays a test candidate. This adds a **backlight driver** to the board (§3.1 and §5 below assumed no backlight; the display's power draw must be re-measured).
+> - **Screen content:** arrow, distance and street; distance left and ETA; a north-up route-line mini-map. No "then" manoeuvre, no compass, no heading-up rotation.
+> - **No magnetometer** in v1.
+> - **ESP32-S3-MINI-1:** the PSRAM variant is optional until the UI is built (same footprint as the 8 MB flash variant).
+> - **Power from both battery and bike:** 12 V to 5 V stays in a separate potted cable; the device adds an input over-voltage protector; firmware cuts charge current when hot. The panel is only rated -20..+70 C, which a sun-baked handlebar can exceed.
+
 This is the **hardware design specification** for the production-intent device: what to build, how the
 parts fit together, and what an electronics engineer and a factory need to know. It is **not** a finished
 schematic: a manufacturable PCB must be designed in KiCad (or similar) and reviewed by an experienced engineer.
