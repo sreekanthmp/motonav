@@ -5,7 +5,8 @@
 > - **Screen content:** arrow, distance and street; distance left and ETA; a north-up route-line mini-map. No "then" manoeuvre, no compass, no heading-up rotation.
 > - **No magnetometer** in v1.
 > - **ESP32-S3-MINI-1:** the PSRAM variant is optional until the UI is built (same footprint as the 8 MB flash variant).
-> - **Power from both battery and bike:** 12 V to 5 V stays in a separate potted cable; the device adds an input over-voltage protector; firmware cuts charge current when hot. The panel is only rated -20..+70 C, which a sun-baked handlebar can exceed.
+> - **Power: bike only, through USB-C, no internal battery.** Decided after costing four options; see `docs/POWER_DESIGN_USBC.md`. Sections 2, 3.3, 3.4's battery remarks, 5 and 7 below describe the superseded battery, charger, fuel gauge, IMU, pogo and hardwired-cable design. The panel is only rated -20..+70 C, which a sun-baked handlebar can exceed.
+> - **Parts and pins:** `hardware/bom_v2.csv`, `hardware/io_budget_v2.csv`; cost: `hardware/cost_model_final_product.xlsx`.
 
 This is the **hardware design specification** for the production-intent device: what to build, how the
 parts fit together, and what an electronics engineer and a factory need to know. It is **not** a finished

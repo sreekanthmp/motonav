@@ -1,0 +1,14 @@
+function,signal,count,direction,notes
+Display,QSPI CS/CLK/D0-D3,6,out/inout,"Use the QSPI-capable pins from the module datasheet; keep traces short and length-matched"
+Display,RESET,1,out,
+Display,TE (tearing effect),1,in,optional
+Display,Backlight PWM or enable,1,out,"NEW: the TFT panel needs a dimmable backlight driver (the AMOLED design had none)"
+I2C bus,"SDA/SCL (ambient light sensor)",2,inout,"Pull-ups; one bus is enough. An unpopulated IMU footprint can share it later"
+Interrupts,ALS INT,1,in,optional
+Buttons,4 buttons,4,in,"Plain GPIOs are enough: there is no deep sleep or battery"
+USB,D- / D+ (GPIO19/GPIO20),2,inout,"Native USB for flashing and serial; 22-33 ohm series; 90 ohm differential. Also the power input path"
+UART0,TX/RX (GPIO43/GPIO44),2,inout,"Factory test and logs; 499 ohm series on TX"
+Boot,GPIO0 (BOOT) + EN (reset),2,in,"Strapping pins: GPIO0/GPIO3/GPIO45/GPIO46 - do not load them with other circuits"
+Optional,Status LED,1,out,optional
+TOTAL (approx),"22 GPIOs including the optional ones (19 without them); EN is a pin, not a GPIO",22,,"Down from about 27 in v1: no IMU, fuel gauge or charger pins. Check against the module's available GPIO count"
+Removed,"IMU INT, fuel gauge ALERT, charger INT/status, magnetometer DRDY",0,,"No battery, no charger, no IMU, no magnetometer in this design"
