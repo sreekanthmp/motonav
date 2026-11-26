@@ -8,6 +8,7 @@
 
 #include "ble_service.h"
 #include "config.h"
+#include "nav_map.h"
 #include "nav_protocol.h"
 #include "nav_state.h"
 #include "ui.h"
@@ -65,6 +66,7 @@ void setup() {
 
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   navStateInit();
+  navMapInit();
   uiInit();
   bleInit();
 }

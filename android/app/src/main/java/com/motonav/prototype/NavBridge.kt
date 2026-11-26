@@ -3,6 +3,8 @@ package com.motonav.prototype
 import com.google.android.libraries.mapsplatform.turnbyturn.model.NavInfo
 import com.motonav.prototype.NavProtocol.Man
 import com.motonav.prototype.NavProtocol.Mode
+import com.motonav.prototype.route.LatLon
+import com.motonav.prototype.route.MapFeed
 
 /**
  * Glue between the Navigation SDK's turn-by-turn feed and the BLE client.
@@ -27,6 +29,17 @@ object NavBridge {
     private var seq = 0
     private var lastStreet = ""
     private var lastLogMs = 0L
+
+    /** Route line + position for the device's map. Used only under this object's lock. */
+    private val mapFeed = MapFeed(object : MapFeed.Sink {
+        override fun sendRoute(chunks: List<ByteArray>) {
+            ble?.sendRoute(chunks)
+        }
+
+        override fun sendPos(bytes: ByteArray) {
+            ble?.sendPos(bytes)
+        }
+    })
 
     @Synchronized
     fun onNavInfo(info: NavInfo) {
@@ -88,15 +101,35 @@ object NavBridge {
         onStatus(NavMapper.statusLine(mode, Man.NONE, 0, 0, "", 0, 0))
     }
 
-    /** Called when the phone (re)connects to the device so it gets the current street name again. */
+    /** Called when the phone (re)connects to the device so it gets the current street name and route again. */
     @Synchronized
     fun onBleConnected() {
         if (lastStreet.isNotEmpty()) ble?.sendStreet(lastStreet.toByteArray(Charsets.US_ASCII))
+        mapFeed.onConnected()
+    }
+
+    /** A new route (first route, reroute, traffic change): the points of the whole route. */
+    @Synchronized
+    fun onRoute(points: List<LatLon>) {
+        val route = MapFeed.routeFrom(points)
+        if (route == null) {
+            log("Map feed: the route has no usable points")
+            return
+        }
+        mapFeed.setRoute(route)
+        log("Map feed: route of ${route.points.size} points, ${route.totalM.toInt()} m")
+    }
+
+    /** The rider's position, about once a second while navigating. */
+    @Synchronized
+    fun onLocation(lat: Double, lon: Double) {
+        mapFeed.onPosition(lat, lon)
     }
 
     @Synchronized
     fun reset() {
         arrived = false
         lastStreet = ""
+        mapFeed.clearRoute()
     }
 }

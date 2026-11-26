@@ -10,6 +10,7 @@ import com.google.android.libraries.navigation.RoadSnappedLocationProvider
 import com.google.android.libraries.navigation.RoutingOptions
 import com.google.android.libraries.navigation.SimulationOptions
 import com.google.android.libraries.navigation.Waypoint
+import com.motonav.prototype.route.LatLon as RouteLatLon
 
 /**
  * Thin wrapper around the Google Navigation SDK:
@@ -34,6 +35,7 @@ class NavController(
     private val locationListener = object : RoadSnappedLocationProvider.LocationListener {
         override fun onLocationChanged(location: Location) {
             NavBridge.speedKmhX10 = if (location.hasSpeed()) NavMapper.speedKmhX10(location.speed) else 0
+            NavBridge.onLocation(location.latitude, location.longitude)   // for the device's map
         }
     }
 
@@ -68,6 +70,7 @@ class NavController(
                         log("Arrived at destination")
                     }
                 })
+                navigator.addRouteChangedListener(Navigator.RouteChangedListener { publishRoute(navigator) })
                 val registered = navigator.registerServiceForNavUpdates(
                     activity.packageName, NavInfoReceivingService::class.java.name, 1,
                 )
@@ -129,6 +132,7 @@ class NavController(
         nav.setDestination(waypoint, options).setOnResultListener { status ->
             if (status == Navigator.RouteStatus.OK) {
                 nav.startGuidance()
+                publishRoute(nav)
                 if (simulate) nav.simulator.simulateLocationsAlongExistingRoute(SimulationOptions().speedMultiplier(3f))
                 log("Guidance started")
                 onStatus("Route found. Waiting for the first instruction…")
@@ -137,6 +141,16 @@ class NavController(
                 log("Route request failed: $status")
                 onStatus("Could not start: $status" + hint(status))
             }
+        }
+    }
+
+    /** Sends the whole route line to the device's map feed. Called after a route is found and whenever it changes. */
+    private fun publishRoute(nav: Navigator) {
+        try {
+            val points = nav.routeSegments.flatMap { it.latLngs }.map { RouteLatLon(it.latitude, it.longitude) }
+            NavBridge.onRoute(points)
+        } catch (e: Exception) {
+            log("Map feed: could not read the route (${e.message})")
         }
     }
 

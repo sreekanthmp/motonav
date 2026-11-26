@@ -5,7 +5,7 @@ Small Kotlin app: connects to the ESP32 over BLE and forwards Google Navigation 
 **Status**
 
 - All Kotlin sources **compile without errors** with the Kotlin compiler against the **real** Navigation SDK 7.0.0 and Android 36 jars. Only the AndroidX classes used by `MainActivity` were checked against small stand-ins.
-- The **31 unit tests pass** (`ProtocolTest`, `ShareParserTest`, `StatusTextTest`).
+- **117 unit tests pass in the real Android Gradle build** (`./gradlew :app:testDebugUnitTest`): the original 31 plus the route follower and map feed tests. The debug APK assembles.
 - The app has been **built in Android Studio and run on a real phone** (Samsung SM-G781B). Verified there: Share from Google Maps, Navigation SDK guidance, the turn-by-turn feed, and Bluetooth to the ESP32.
 - **Not yet verified:** locked-screen behaviour over long rides, other phone brands.
 
@@ -70,7 +70,29 @@ Navigation SDK ──(Messenger, ~1/s)──► NavInfoReceivingService ──�
 | `NavProtocol.kt` | Byte encoding of the BLE messages (mirror of `protocol/nav_protocol.h`) |
 | `BleClient.kt` | Scan, connect, auto-reconnect, latest-wins write queue |
 | `MainActivity.kt` | Buttons, permissions, on-screen log |
-| `route/` | **Route follower**: guidance data from any routing service instead of Google's SDK (see below) |
+| `route/` | **Route follower** (guidance data from any routing service) and the **map feed** (route line + position for the device); see below |
+
+## Map feed: the route line and position the device draws
+
+The device's screen shows a mini-map with the route line and your position (north-up, no compass). The app now sends both,
+in addition to the arrow, distance, street, distance left and ETA it already sent:
+
+```
+Navigation SDK route (getRouteSegments)  ─► NavBridge.onRoute ─┐
+Navigation SDK road-snapped location (1 Hz) ─► NavBridge.onLocation ─► MapFeed ─► BleClient ─► NavRoute / NavPos ─► ESP32
+```
+
+| File | Role |
+|------|------|
+| `route/MapFeed.kt` | Decides when to send a route window (first time, after a reroute or reconnect, once the rider has used up the current one) and sends the position every update |
+| `route/RouteWindowCodec.kt` | Encodes a window into BLE chunks (format: `protocol/README.md`) |
+| `route/RouteSimplifier.kt` | Cuts a window to at most 96 points |
+| `NavController.kt` | Reads the SDK's route segments after a route is found and on every route change; forwards locations |
+| `BleClient.kt` | Discovers the two optional characteristics; sends NavCore and NavStreet first, then the position, then route chunks |
+
+If the firmware has no map feed the app logs "This firmware has no map feed" and carries on as before. The Navigation SDK calls
+used (`Navigator.getRouteSegments()`, `RouteSegment.getLatLngs()`, `addRouteChangedListener`) were checked against the real SDK 7.0.0 jar.
+**Not yet tried on a phone with the device.** Check the on-screen log for "Map feed: route of N points" after starting a route.
 
 ## Route follower: the device's data without Google's Navigation SDK
 
@@ -119,8 +141,8 @@ thresholds are in `RouteFollower.Config` and are starting values to tune on real
 - Via-points (more than one leg) are not announced; only the final destination is.
 - Straight-ahead "new name" steps are kept (as the Google mapper does), so a long route can show many of them.
 - Street names missing in the map data show as empty (an unnamed road with a reference, e.g. "NH 48", shows the reference).
-- The 57 unit tests (`app/src/test/.../route/`) pass standalone on JDK 21 with Kotlin 2.1.0. They have **not yet
-  been run inside this Android Gradle build** (needs the Android SDK): run `./gradlew :app:testDebugUnitTest`.
+- The route follower's 57 unit tests (`app/src/test/.../route/`) pass, standalone and inside the Android Gradle build. It is **not yet
+  used as a data source** in the app: today the map feed uses the Google Navigation SDK's route.
 
 ## Bluetooth: don't pair MotoNav in Android's Bluetooth settings
 

@@ -50,6 +50,20 @@ Mode byte (2nd byte): `00` idle, `01` navigating, `02` off route, `03` rerouting
 
 Serial monitor prints every packet it accepts or rejects.
 
+## Map feed (route line + position)
+
+The firmware also accepts **NavRoute** (`…0005`) and **NavPos** (`…0006`) from the phone: a window of the route around the rider
+and the rider's position. They are stored (`nav_map.cpp`) and logged on the serial monitor (`[ble] NavRoute window 3: 41 points`);
+**nothing is drawn from them yet**: that waits for the colour round panel. Read them with `navMapGet()`. They are cleared when the phone
+disconnects. Format: [`../../protocol/README.md`](../../protocol/README.md).
+
+The decoder (`../../protocol/nav_route.h`) has no Arduino dependency and is tested on a PC:
+
+```bash
+cd firmware/prototype-esp32/test_host
+g++ -std=c++17 -Wall -Wextra -fsanitize=address,undefined -I ../../protocol test_nav_route.cpp -o test_nav_route && ./test_nav_route
+```
+
 ## Troubleshooting
 
 | Symptom | Likely cause |

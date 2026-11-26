@@ -48,6 +48,8 @@ class BleClient(
     private var gatt: BluetoothGatt? = null
     private var coreChar: BluetoothGattCharacteristic? = null
     private var streetChar: BluetoothGattCharacteristic? = null
+    private var routeChar: BluetoothGattCharacteristic? = null   // map feed: optional, older firmware lacks it
+    private var posChar: BluetoothGattCharacteristic? = null
 
     private var wantConnected = false
     private var scanning = false
@@ -56,8 +58,13 @@ class BleClient(
     private var writeStartedMs = 0L
     private var pendingCore: ByteArray? = null
     private var pendingStreet: ByteArray? = null
+    private var pendingPos: ByteArray? = null
+    private val routeQueue = ArrayDeque<ByteArray>()
 
     val isConnected: Boolean get() = state == State.CONNECTED
+
+    /** The connected firmware has the route and position characteristics. */
+    val supportsMap: Boolean get() = routeChar != null && posChar != null
 
     // ---- public API (call from any thread) ------------------------------------------------
 
@@ -89,6 +96,25 @@ class BleClient(
     fun sendStreet(bytes: ByteArray) {
         handler.post {
             pendingStreet = if (bytes.isEmpty()) " ".toByteArray() else bytes
+            pump()
+        }
+    }
+
+    /** Latest position wins: an older one is useless. Ignored if the firmware has no map feed. */
+    fun sendPos(bytes: ByteArray) {
+        handler.post {
+            if (!supportsMap) return@post
+            pendingPos = bytes
+            pump()
+        }
+    }
+
+    /** All chunks of one route window, in order. A newer window replaces any chunks still waiting. */
+    fun sendRoute(chunks: List<ByteArray>) {
+        handler.post {
+            if (!supportsMap) return@post
+            routeQueue.clear()
+            routeQueue.addAll(chunks)
             pump()
         }
     }
@@ -205,6 +231,10 @@ class BleClient(
         if (gatt === g) gatt = null
         coreChar = null
         streetChar = null
+        routeChar = null
+        posChar = null
+        pendingPos = null
+        routeQueue.clear()
         writing = false
     }
 
@@ -246,6 +276,10 @@ class BleClient(
                     g.disconnect()
                     return@post
                 }
+                routeChar = svc.getCharacteristic(NavProtocol.NAVROUTE_UUID)
+                posChar = svc.getCharacteristic(NavProtocol.NAVPOS_UUID)
+                log(if (supportsMap) "Map feed supported (route line + position)"
+                    else "This firmware has no map feed: the route line is not sent")
                 val events = svc.getCharacteristic(NavProtocol.EVENTS_UUID)
                 val cccd = events?.getDescriptor(CCCD_UUID)
                 if (events != null && cccd != null) {
@@ -305,6 +339,14 @@ class BleClient(
 
             core != null -> {
                 target = coreChar; value = core; pendingCore = null
+            }
+
+            pendingPos != null && posChar != null -> {
+                target = posChar; value = pendingPos!!; pendingPos = null
+            }
+
+            routeQueue.isNotEmpty() && routeChar != null -> {
+                target = routeChar; value = routeQueue.removeFirst()
             }
 
             else -> return

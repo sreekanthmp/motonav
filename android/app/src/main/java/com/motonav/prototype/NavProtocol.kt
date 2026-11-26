@@ -19,6 +19,16 @@ object NavProtocol {
     val NAVSTREET_UUID: UUID = UUID.fromString("4d6f746f-4e61-7601-8a5c-3f2d1b0e0003")
     val EVENTS_UUID: UUID = UUID.fromString("4d6f746f-4e61-7601-8a5c-3f2d1b0e0004")
 
+    // Map feed (additive: a device without these characteristics still works). See protocol/README.md.
+    val NAVROUTE_UUID: UUID = UUID.fromString("4d6f746f-4e61-7601-8a5c-3f2d1b0e0005")
+    val NAVPOS_UUID: UUID = UUID.fromString("4d6f746f-4e61-7601-8a5c-3f2d1b0e0006")
+    const val POS_SIZE = 10
+    const val ROUTE_STREAM_VERSION = 1
+    const val ROUTE_MAX_POINTS = 96
+    const val ROUTE_CHUNK_HEADER = 3
+    /** Bytes per BLE write that always work (default ATT MTU 23 minus 3). */
+    const val DEFAULT_WRITE_PAYLOAD = 20
+
     object Mode {
         const val IDLE = 0
         const val NAV = 1
@@ -72,6 +82,19 @@ object NavProtocol {
         b.putInt(remainingM.coerceIn(0L, 0xFFFFFFFFL).toInt())
         b.putShort(etaMinutes.coerceIn(0, 0xFFFF).toShort())
         b.putShort(speedKmhX10.coerceIn(0, 0xFFFF).toShort())
+        return b.array()
+    }
+
+    /** Degrees to the wire unit (degrees x 1e-6, about 0.11 m). */
+    fun toE6(degrees: Double): Int = Math.round(degrees * 1e6).toInt()
+
+    /** 10-byte NavPos, little-endian: route window id, sequence, latitude, longitude. */
+    fun encodePos(routeId: Int, seq: Int, latE6: Int, lonE6: Int): ByteArray {
+        val b = ByteBuffer.allocate(POS_SIZE).order(ByteOrder.LITTLE_ENDIAN)
+        b.put((routeId and 0xFF).toByte())
+        b.put((seq and 0xFF).toByte())
+        b.putInt(latE6)
+        b.putInt(lonE6)
         return b.array()
     }
 

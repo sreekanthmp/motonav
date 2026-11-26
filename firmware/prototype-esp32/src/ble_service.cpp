@@ -2,6 +2,7 @@
 
 #include <NimBLEDevice.h>
 
+#include "nav_map.h"
 #include "nav_protocol.h"
 #include "nav_state.h"
 
@@ -26,6 +27,7 @@ class ServerCallbacks : public NimBLEServerCallbacks {
     (void)connInfo;
     g_connected = false;
     navStateSetConnected(false);
+    navMapReset();                      // do not keep drawing a route from a phone that is gone
     Serial.printf("[ble] disconnected (reason %d) -> advertising again\n", reason);
     NimBLEDevice::startAdvertising();   // auto-recover: phone can reconnect without a reset
   }
@@ -51,9 +53,37 @@ class StreetCallbacks : public NimBLECharacteristicCallbacks {
   }
 };
 
+// Map feed (optional for the phone): the route window ahead and the rider's position.
+class RouteCallbacks : public NimBLECharacteristicCallbacks {
+  void onWrite(NimBLECharacteristic *chr, NimBLEConnInfo &connInfo) override {
+    (void)connInfo;
+    NimBLEAttValue v = chr->getValue();
+    if (navMapOnRouteWrite(v.data(), v.size())) {
+      NavMapSnapshot m;
+      navMapGet(&m);
+      Serial.printf("[ble] NavRoute window %u: %u points%s\n", (unsigned)m.route.routeId, (unsigned)m.route.count,
+                    m.route.endsAtDestination ? " (ends at the destination)" : "");
+    }
+  }
+};
+
+class PosCallbacks : public NimBLECharacteristicCallbacks {
+  void onWrite(NimBLECharacteristic *chr, NimBLEConnInfo &connInfo) override {
+    (void)connInfo;
+    NimBLEAttValue v = chr->getValue();
+    static uint32_t count = 0;
+    bool ok = navMapOnPosWrite(v.data(), v.size());
+    if (!ok || (count++ % 20) == 0) {   // one line in 20: this arrives every second
+      Serial.printf("[ble] NavPos %s (%u bytes)\n", ok ? "ok" : "REJECTED", (unsigned)v.size());
+    }
+  }
+};
+
 static ServerCallbacks serverCb;
 static CoreCallbacks coreCb;
 static StreetCallbacks streetCb;
+static RouteCallbacks routeCb;
+static PosCallbacks posCb;
 
 void bleInit() {
   NimBLEDevice::init(MOTONAV_DEVICE_NAME);
@@ -71,6 +101,14 @@ void bleInit() {
   NimBLECharacteristic *street = svc->createCharacteristic(
       MOTONAV_NAVSTREET_UUID, NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR);
   street->setCallbacks(&streetCb);
+
+  NimBLECharacteristic *route = svc->createCharacteristic(
+      MOTONAV_NAVROUTE_UUID, NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR);
+  route->setCallbacks(&routeCb);
+
+  NimBLECharacteristic *pos = svc->createCharacteristic(
+      MOTONAV_NAVPOS_UUID, NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR);
+  pos->setCallbacks(&posCb);
 
   g_events = svc->createCharacteristic(MOTONAV_EVENTS_UUID, NIMBLE_PROPERTY::NOTIFY);
 
