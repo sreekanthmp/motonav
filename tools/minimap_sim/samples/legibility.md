@@ -3,7 +3,7 @@
 | A | arrow | 74 | 74.0 | 6.61 | 41.3' | 7.23 | 3.2 mm | OK |
 | A | distance | 58 | 40.0 | 3.57 | 22.3' | 3.57 | 3.2 mm | OK |
 | A | line1 | 56 | 38.5 | 3.44 | 21.5' | 3.44 | 3.2 mm | OK |
-| A | line2 | 36 | 24.8 | 2.21 | 13.8' | 2.21 | 2.6 mm | BELOW target |
+| A | line2 | 35 | 24.0 | 2.14 | 13.4' | 2.21 | 2.6 mm | BELOW target |
 | A | street | 34 | 23.5 | 2.10 | 13.1' | 2.46 | 2.6 mm | BELOW target |
 | A | remaining | 34 | 23.5 | 2.10 | 13.1' | 2.10 | 2.6 mm | BELOW target |
 | A | scale | 26 | 18.0 | 1.61 | 10.0' | 1.61 |  | info |

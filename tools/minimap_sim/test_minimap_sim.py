@@ -272,7 +272,11 @@ class RenderTest(unittest.TestCase):
         self.assertEqual(f(999), ("1000", "m"))                                      # 999 rounds to 1000 m, not "1.0 km" glitch
         self.assertEqual(f(1840), ("1.8", "km"))
         self.assertEqual(f(12400), ("12", "km"))
+        self.assertEqual((f(85), f(125), f(1250), f(12500), f(9949), f(9950)),               # halves round up
+                         (("90", "m"), ("150", "m"), ("1.3", "km"), ("13", "km"), ("9.9", "km"), ("10", "km")))
+        self.assertEqual((f(999_499), f(999_500), f(4_294_967_295)), (("999", "km"), ("999+", "km"), ("999+", "km")))
         self.assertEqual(render.fmt_eta(8), "8 min")
+        self.assertEqual((render.fmt_eta(5999), render.fmt_eta(6000), render.fmt_eta(65535)), ("99 h 59 m", "99+ h", "99+ h"))
         self.assertEqual(render.fmt_eta(72), "1 h 12 m")
 
     def test_primary_elements_meet_the_size_target(self):
@@ -301,6 +305,26 @@ class RenderTest(unittest.TestCase):
             zooms.append(render.render(st, "A", view)[2].get("mpp"))
         changes = sum(1 for a, b in zip(zooms, zooms[1:]) if a != b)
         self.assertLessEqual(changes, 3)
+
+
+class RandomStateTest(unittest.TestCase):
+    def test_random_states_never_draw_in_the_edge_margin(self):
+        """Hostile values: absurd distances, 20 wide characters, descenders, every manoeuvre code, odd windows."""
+        import random
+        rng = random.Random(7)
+        base = ride.state_at(2000)[0]
+        chars = "WMwmiIl.,'-ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 /()&gjpqy"
+        for n in range(60):
+            street = "".join(rng.choice(chars) for _ in range(rng.choice((0, 5, 12, 20))))
+            if n % 5 == 0:
+                street = ")" + "W" * 18 + "y"
+            core = wire.Core(rng.choice((0, 1, 1, 1, 2, 3, 4)), rng.randrange(0, 24), rng.randrange(0, 14), n,
+                             int(10 ** rng.uniform(0, 9.6)) if n % 2 else rng.randrange(0, 2000),
+                             int(10 ** rng.uniform(0, 9.6)), rng.choice((0, 7, 59, 61, 5999, 6000, 65535)), 100)
+            st = ride.DeviceState(True, core, wire.decode_street(street.encode()), base.window, base.pos)
+            for layout in "AB":
+                _, meta, _ = render.render(st, layout)
+                self.assertEqual(render.outside_violations(meta), [], f"{layout} {street!r} {core}")
 
 
 class ScenarioTest(unittest.TestCase):

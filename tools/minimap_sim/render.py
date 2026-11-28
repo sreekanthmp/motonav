@@ -49,19 +49,27 @@ NICE_M = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
 
 # ---- formatting ------------------------------------------------------------------------------------------------
 
-def fmt_dist(m: float) -> Tuple[str, str]:
-    """(value, unit) for a distance. Round numbers a rider can take in at a glance."""
+def fmt_dist(m: int) -> Tuple[str, str]:
+    """(value, unit) for a distance in whole metres. Round numbers a rider can take in at a glance.
+    Integer arithmetic, halves round up: the firmware does exactly the same (no float printing on the device)."""
+    m = int(m)
+    if m >= 999_500:
+        return "999+", "km"                        # keeps the number inside the circle for absurd distances
     if m < 100:
-        return str(int(round(m / 10.0)) * 10), "m"
+        return str(((m + 5) // 10) * 10), "m"
     if m < 1000:
-        return str(int(round(m / 50.0)) * 50), "m"
-    km = m / 1000.0
-    return (f"{km:.1f}" if km < 10 else f"{km:.0f}"), "km"
+        return str(((m + 25) // 50) * 50), "m"
+    if m < 9950:
+        tenths = (m + 50) // 100
+        return f"{tenths // 10}.{tenths % 10}", "km"
+    return str((m + 500) // 1000), "km"
 
 
 def fmt_eta(minutes: int) -> str:
     if minutes < 60:
         return f"{minutes} min"
+    if minutes >= 6000:
+        return "99+ h"
     return f"{minutes // 60} h {minutes % 60:02d} m"
 
 
@@ -328,8 +336,14 @@ def chord_half(y: float, margin: float = SAFE_MARGIN_PX) -> float:
     return math.sqrt(max(0.0, inner * inner - dy * dy))
 
 
+def row_half(y: float, size: float) -> float:
+    """Half the width a line of text centred on y may use: the narrowest chord between its ascender top (0.38 em above
+    the middle) and its descender bottom (0.56 em below it), so no glyph of any name can reach the edge."""
+    return min(chord_half(y - 0.38 * size), chord_half(y + 0.56 * size))
+
+
 def _street(panel: Panel, state: DeviceState, y: float, size: float = 40, min_size: float = 34) -> Element:
-    half = chord_half(y + 15)
+    half = row_half(y, size)
     return panel.text("street", "secondary", (CX, y), state.street, size, max_w=2 * half - 6, min_size=min_size)
 
 
@@ -337,7 +351,7 @@ def _bottom(panel: Panel, state: DeviceState, y: float, size: float = 34) -> Ele
     c = state.core
     rv, ru = fmt_dist(c.remaining_m)
     s = f"{rv} {ru} · {fmt_eta(c.eta_min)}"
-    return panel.text("remaining", "secondary", (CX, y), s, size)
+    return panel.text("remaining", "secondary", (CX, y), s, size, max_w=2 * chord_half(y + 12) - 6, min_size=24)
 
 
 def _message(panel: Panel, kind: str, line1: str, line2: str) -> None:
@@ -357,7 +371,7 @@ def _message(panel: Panel, kind: str, line1: str, line2: str) -> None:
         d.line([((cx - 16) * SS, (cy - 22) * SS), ((cx + 18) * SS, (cy + 12) * SS), (cx * SS, (cy + 30) * SS), (cx * SS, (cy - 30) * SS),
                 ((cx + 18) * SS, (cy - 12) * SS), ((cx - 16) * SS, (cy + 22) * SS)], fill=WHITE, width=6 * SS, joint="curve")
     panel.text("line1", "primary", (CX, 236), line1, 56)
-    panel.text("line2", "secondary", (CX, 292), line2, 36, fill=SOFT)
+    panel.text("line2", "secondary", (CX, 292), line2, 36, fill=SOFT, max_w=2 * row_half(292, 36) - 6, min_size=24)
 
 
 def render_a(state: DeviceState, view: Optional[ViewState] = None) -> Tuple[Image.Image, Dict[str, Element], dict]:

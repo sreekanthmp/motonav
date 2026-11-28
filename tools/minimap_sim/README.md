@@ -26,7 +26,7 @@ Needs Python 3.10+, `Pillow` and `numpy` (`pip install pillow numpy`). `g++` is 
 cd tools/minimap_sim
 python3 minimap_sim.py all            # contact sheets, legibility table, sunlight preview, ride GIFs -> samples/
 python3 minimap_sim.py one --step 3 --dist 120 --layout B     # a single screen
-python3 -m unittest -v                # 31 tests, about 20 s
+python3 -m unittest -v                # 40 tests, about 1 minute (includes the firmware renderer, needs g++)
 ```
 
 Already generated in [`samples/`](samples): `sheet_A.png`, `sheet_B.png` (12 screens each, shown 1:1), `sun_preview.png`,
@@ -110,11 +110,12 @@ control, vibration, the touch of the real display driver (QSPI) and any firmware
 | `sun.py` | Rough sunlight preview and contrast numbers |
 | `minimap_sim.py` | Command line: sheets, tables, GIFs |
 | `device_decode.cpp` | Test harness around the real firmware decoder |
-| `test_minimap_sim.py` | 31 tests |
+| `test_minimap_sim.py` | 31 tests of the simulator |
+| `test_firmware_parity.py` | 9 tests: the firmware renderer (`firmware/product-esp32s3`) compiled for the PC against this simulator |
 
 ## Next
 
 * Pick a layout (A, B, or A with street/remaining alternating) and the colours.
 * Read the panel datasheet: active diameter, bezel, brightness, bonding. Update the assumptions above.
-* Port the chosen layout to the real panel in firmware (LVGL or a hand-written renderer) using the same geometry,
-  then compare a photo of the panel with the simulator image side by side.
+* Layout B is now ported to firmware: see [`firmware/product-esp32s3`](../../firmware/product-esp32s3). When the panel
+  arrives, compare a photo of it with the simulator image side by side.
