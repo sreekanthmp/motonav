@@ -2,7 +2,9 @@
 
 Draws the display you chose (layout B of [`tools/minimap_sim`](../../tools/minimap_sim)) from the data the phone sends over
 Bluetooth: big arrow and distance when a turn is near, and arrow, distance, street, north-up route map, distance left and
-minutes left otherwise, plus off route / rerouting / arrived / waiting-for-phone screens.
+minutes left otherwise, plus rerouting / arrived / choose-a-destination / waiting-for-phone screens. There is no separate "off route" screen: the
+Google Navigation SDK never reports it (it goes straight to rerouting), so the protocol's OFF_ROUTE mode shows the rerouting
+screen.
 
 ## Status: read this first
 
@@ -75,7 +77,7 @@ g++ -std=c++17 -g -O1 -Wall -Wextra -fsanitize=address,undefined -I lib/mnui -I 
 
 What the tests check:
 
-* **Parity with the simulator**: the same 12 screens from the same raw BLE bytes (decoded by the real `nav_route.h`);
+* **Parity with the simulator**: the same 11 screens from the same raw BLE bytes (decoded by the real `nav_route.h`);
   mean difference under 3/255, under 1.2 % of pixels differing strongly, same layout chosen, same map zoom, same text
   widths (kerning included), a ride's zoom sequence unchanged frame by frame.
 * **Rasteriser**: circle area within 0.4 %, half-covered pixels at 50 %, overlapping shapes unite, holes stay empty,

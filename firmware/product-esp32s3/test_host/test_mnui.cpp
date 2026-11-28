@@ -158,6 +158,33 @@ static void testBands() {
   CHECK(g[0] == 0xABCD && g[3] == 0xABCD && g[4 + kSize * 3] == 0xABCD && g[g.size() - 1] == 0xABCD);
 }
 
+static void testStatusScreens() {
+  Ui ui;
+  UiInput in;
+  in.connected = true;
+  in.hasCore = true;
+  in.core.version = 1; in.core.maneuver = MN_MAN_LEFT; in.core.dist_to_maneuver_m = 800; in.core.remaining_dist_m = 5000;
+  in.core.eta_minutes = 12;
+  strcpy(in.street, "Brigade Road");
+  // the protocol's OFF_ROUTE mode has no screen of its own: it shows the rerouting screen
+  in.core.mode = MN_MODE_REROUTING;
+  ui.update(in);
+  auto rer = renderAll(ui.list());
+  in.core.mode = MN_MODE_OFF_ROUTE;
+  ui.update(in);
+  CHECK(renderAll(ui.list()) == rer);
+  CHECK(!ui.lastWasLarge());                              // status screens never use the large-arrow screen
+  // and each status screen differs from the others
+  in.core.mode = MN_MODE_ARRIVED; ui.update(in); auto arrived = renderAll(ui.list());
+  in.core.mode = MN_MODE_IDLE; ui.update(in); auto idle = renderAll(ui.list());
+  in.connected = false; ui.update(in); auto waiting = renderAll(ui.list());
+  CHECK(rer != waiting && arrived != waiting);
+  CHECK(rer != arrived);
+  CHECK(rer != idle);
+  CHECK(arrived != idle);
+  CHECK(idle != waiting);
+}
+
 static void testPools() {
   DisplayList dl;
   for (int i = 0; i < kMaxOps + 50; i++) {
@@ -333,6 +360,7 @@ int main(int argc, char **argv) {
   if (argc > 1) g_seed = static_cast<uint32_t>(atoi(argv[1]));      // ./test_mnui 7 : another random sequence
   testShapes();
   testBands();
+  testStatusScreens();
   testPools();
   testText();
   testFormats();

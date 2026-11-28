@@ -60,7 +60,6 @@ def build_tiles() -> List[Tuple[str, DeviceState]]:
     near_end = _nav_tile(8, 15)
     tiles += [
         ("Arrived", _with_mode(near_end, wire.MODE_ARRIVED)),
-        ("Off route", _with_mode(_nav_tile(1, 200), wire.MODE_OFF_ROUTE)),
         ("Rerouting", _with_mode(_nav_tile(1, 200), wire.MODE_REROUTING)),
         ("Phone not connected", DeviceState()),
     ]

@@ -20,7 +20,7 @@ The phone is the BLE **central**; the device is the **peripheral** advertising a
 | Offset | Type | Field |
 |--------|------|-------|
 | 0 | u8 | `version` (= 1; other values are rejected) |
-| 1 | u8 | `mode`: 0 IDLE · 1 NAV · 2 OFF_ROUTE · 3 REROUTING · 4 ARRIVED |
+| 1 | u8 | `mode`: 0 IDLE · 1 NAV · 2 OFF_ROUTE · 3 REROUTING · 4 ARRIVED. (The Google feed never sends 2; the 412 x 412 display shows its rerouting screen for it) |
 | 2 | u8 | `maneuver` (enum below) |
 | 3 | u8 | `roundabout_exit` (0 = unknown) |
 | 4 | u16 | `seq` — increments per packet; gaps reveal dropped packets |

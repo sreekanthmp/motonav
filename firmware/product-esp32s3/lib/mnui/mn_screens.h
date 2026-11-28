@@ -26,7 +26,7 @@ class Ui {
  public:
   // Builds the display list for the current state. Layout B: the full screen (arrow, distance, street, map, distance
   // left and minutes left) while the next manoeuvre is far, a large-arrow screen without the map when it is near, and
-  // status screens (off route, rerouting, arrived, waiting for phone).
+  // status screens (rerouting, arrived, waiting for phone). The protocol's OFF_ROUTE mode shows the rerouting screen.
   void update(const UiInput &in);
   // Forget the map zoom (the zoom is kept from frame to frame so it does not flicker).
   void resetView() { mpp_ = 0; }

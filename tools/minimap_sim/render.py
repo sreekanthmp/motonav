@@ -357,11 +357,7 @@ def _bottom(panel: Panel, state: DeviceState, y: float, size: float = 34) -> Ele
 def _message(panel: Panel, kind: str, line1: str, line2: str) -> None:
     el, d = panel.layer("icon")
     cx, cy = CX, 122
-    if kind == "warn":
-        d.polygon([(cx * SS, (cy - 52) * SS), ((cx + 58) * SS, (cy + 44) * SS), ((cx - 58) * SS, (cy + 44) * SS)], fill=AMBER)
-        f = fonts.font(62 * SS)
-        d.text((cx * SS, (cy + 17) * SS), "!", font=f, fill=BLACK, anchor="mm")
-    elif kind == "spin":
+    if kind == "spin":
         d.arc([(cx - 50) * SS, (cy - 50) * SS, (cx + 50) * SS, (cy + 50) * SS], 40, 330, fill=WHITE, width=14 * SS)
         d.polygon([((cx + 56) * SS, (cy - 14) * SS), ((cx + 32) * SS, (cy - 4) * SS), ((cx + 60) * SS, (cy + 12) * SS)], fill=WHITE)
     elif kind == "flag":
@@ -381,9 +377,7 @@ def render_a(state: DeviceState, view: Optional[ViewState] = None) -> Tuple[Imag
     c = state.core
     if not state.connected or c is None:
         _message(p, "wait", "MotoNav", "Waiting for phone")
-    elif c.mode == wire.MODE_OFF_ROUTE:
-        _message(p, "warn", "OFF ROUTE", "Return to the route")
-    elif c.mode == wire.MODE_REROUTING:
+    elif c.mode in (wire.MODE_REROUTING, wire.MODE_OFF_ROUTE):      # the Google feed never says "off route"; same screen
         _message(p, "spin", "REROUTING", "Finding route")
     elif c.mode == wire.MODE_ARRIVED or c.maneuver in (wire.MAN_ARRIVE, wire.MAN_ARRIVE_LEFT, wire.MAN_ARRIVE_RIGHT) and c.dist_m < 40:
         _message(p, "flag", "ARRIVED", state.street or "Destination")

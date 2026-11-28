@@ -131,16 +131,10 @@ void formatEta(uint32_t minutes, char *out, int cap) {
 
 // ---- status screens -----------------------------------------------------------------------------------------------
 
-// kind: 0 waiting for phone, 1 warning, 2 spinner, 3 flag
+// kind: 0 waiting for phone, 1 rerouting spinner, 2 flag
 void Ui::message(int kind, const char *line1, const char *line2) {
   const float cx = kC, cy = 122;
-  if (kind == 1) {                                                  // warning triangle with "!"
-    dl_.beginOp(kAmber);
-    float t[6] = {cx, cy - 52, cx + 58, cy + 44, cx - 58, cy + 44};
-    dl_.polygon(t, 3);
-    dl_.endOp();
-    textMid(dl_, "!", cx, cy + 17, 62, kBlack);
-  } else if (kind == 2) {                                           // rerouting spinner
+  if (kind == 1) {                                                  // rerouting spinner
     float arc[2 * 80];
     int n = 0;
     for (int a = 40; a <= 330 && n < 80; a += 5, n++) {
@@ -152,7 +146,7 @@ void Ui::message(int kind, const char *line1, const char *line2) {
     float h[6] = {cx + 56, cy - 14, cx + 32, cy - 4, cx + 60, cy + 12};
     dl_.polygon(h, 3);
     dl_.endOp();
-  } else if (kind == 3) {
+  } else if (kind == 2) {
     drawIcon(dl_, cx, cy, 110, MN_MAN_ARRIVE, 0, kWhite);
   } else {                                                          // waiting for the phone: ring with a Bluetooth rune
     dl_.beginOp(kSoft);
@@ -364,9 +358,9 @@ void Ui::update(const UiInput &in) {
   bool arriveMan = c.maneuver == MN_MAN_ARRIVE || c.maneuver == MN_MAN_ARRIVE_LEFT || c.maneuver == MN_MAN_ARRIVE_RIGHT;
   bool near = c.mode == MN_MODE_NAV && c.dist_to_maneuver_m <= kTurnSwitchM && c.maneuver != MN_MAN_NONE;
   if (near) { large_ = true; navLarge(in); return; }
-  if (c.mode == MN_MODE_OFF_ROUTE) message(1, "OFF ROUTE", "Return to the route");
-  else if (c.mode == MN_MODE_REROUTING) message(2, "REROUTING", "Finding route");
-  else if (c.mode == MN_MODE_ARRIVED || (arriveMan && c.dist_to_maneuver_m < 40)) message(3, "ARRIVED", in.street[0] ? in.street : "Destination");
+  // The Google feed never reports "off route" (it goes straight to rerouting), so both modes show the same screen.
+  if (c.mode == MN_MODE_REROUTING || c.mode == MN_MODE_OFF_ROUTE) message(1, "REROUTING", "Finding route");
+  else if (c.mode == MN_MODE_ARRIVED || (arriveMan && c.dist_to_maneuver_m < 40)) message(2, "ARRIVED", in.street[0] ? in.street : "Destination");
   else if (c.mode == MN_MODE_IDLE) message(0, "MotoNav", "Choose a destination");
   else navFull(in);
 }

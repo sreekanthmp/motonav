@@ -264,6 +264,16 @@ class RenderTest(unittest.TestCase):
         self.assertTrue(render.render(near, "B")[2].get("large"))
         self.assertNotIn("large", render.render(near, "A")[2])
 
+    def test_off_route_mode_shows_the_rerouting_screen_and_no_warning_screen_exists(self):
+        """The Google feed never says 'off route', so the device has no such screen. A stray mode 2 must not draw anything odd."""
+        base = self.tiles[1][1]
+        for layout in "AB":
+            off, meta_off, _ = render.render(minimap_sim._with_mode(base, wire.MODE_OFF_ROUTE), layout)
+            rer, meta_rer, _ = render.render(minimap_sim._with_mode(base, wire.MODE_REROUTING), layout)
+            self.assertEqual(off.tobytes(), rer.tobytes())
+            self.assertEqual(meta_off["line1"].text, "REROUTING")
+        self.assertNotIn("Off route", [title for title, _ in self.tiles])
+
     def test_distance_formats(self):
         f = render.fmt_dist
         self.assertEqual(f(8), ("10", "m"))

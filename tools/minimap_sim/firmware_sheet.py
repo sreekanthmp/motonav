@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Contact sheet drawn by the FIRMWARE renderer (firmware/product-esp32s3/lib/mnui, compiled for the PC): the 12 situations of
+"""Contact sheet drawn by the FIRMWARE renderer (firmware/product-esp32s3/lib/mnui, compiled for the PC): the 11 situations of
 sheet_B.png, but every pixel comes from the code that will run on the ESP32-S3.
 
     python3 firmware_sheet.py [OUT.png]

@@ -1,6 +1,6 @@
 """The firmware renderer (firmware/product-esp32s3/lib/mnui, compiled for the PC) against this simulator.
 
-Both draw the same 12 situations from the same raw BLE bytes. They use different rasterisers (the simulator supersamples
+Both draw the same 11 situations from the same raw BLE bytes. They use different rasterisers (the simulator supersamples
 4x and filters; the firmware anti-aliases with 8 sub-scanlines), so the images are not identical; these tests bound how
 different they may be, and check that the structure agrees (layout chosen, zoom, same text, nothing outside the circle).
 

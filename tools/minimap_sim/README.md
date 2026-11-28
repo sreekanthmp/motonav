@@ -26,10 +26,10 @@ Needs Python 3.10+, `Pillow` and `numpy` (`pip install pillow numpy`). `g++` is 
 cd tools/minimap_sim
 python3 minimap_sim.py all            # contact sheets, legibility table, sunlight preview, ride GIFs -> samples/
 python3 minimap_sim.py one --step 3 --dist 120 --layout B     # a single screen
-python3 -m unittest -v                # 40 tests, about 1 minute (includes the firmware renderer, needs g++)
+python3 -m unittest -v                # 41 tests, about 1 minute (includes the firmware renderer, needs g++)
 ```
 
-Already generated in [`samples/`](samples): `sheet_A.png`, `sheet_B.png` (12 screens each, shown 1:1), `sun_preview.png`,
+Already generated in [`samples/`](samples): `sheet_A.png`, `sheet_B.png` (11 screens each, shown 1:1), `sun_preview.png`,
 `legibility.md`, `ride_A.gif`, `ride_B.gif`.
 
 ## The two layouts
@@ -39,13 +39,14 @@ Already generated in [`samples/`](samples): `sheet_A.png`, `sheet_B.png` (12 scr
 * **B: adaptive**: layout A while the next turn is far away; when it is 300 m or less the screen switches to a large arrow
   and distance and the map is hidden. (This answers "will it be hard to read?" by making the turn screen big.)
 
-Both also draw: off route, rerouting, arrived, and "waiting for phone". India drives on the left, so roundabouts run
+Both also draw: rerouting, arrived, "choose a destination" and "waiting for phone". There is no "off route" screen: the Google
+feed never reports it (it goes straight to rerouting), so the protocol's OFF_ROUTE mode shows the rerouting screen. India drives on the left, so roundabouts run
 clockwise (exit 1 is a left turn) and the standard U-turn is the clockwise one.
 
 ## What the checks say (read these before choosing a layout)
 
 1. **Everything fits inside the circle.** Every lit pixel of every element is checked to be at least 12 px from the edge
-   (`render.outside_violations`, asserted in the tests for all 12 screens in both layouts). The 12 px is an *assumption*
+   (`render.outside_violations`, asserted in the tests for all 11 screens in both layouts). The 12 px is an *assumption*
    for the bezel/bonding mask; replace it with the panel drawing's value.
 2. **Text size.** Distance and arrow meet the target; **street and "distance · minutes left" do not** on layout A. They are
    limited by the circle: the bottom row sits where the chord is narrow, so it cannot be bigger.
@@ -110,7 +111,7 @@ control, vibration, the touch of the real display driver (QSPI) and any firmware
 | `sun.py` | Rough sunlight preview and contrast numbers |
 | `minimap_sim.py` | Command line: sheets, tables, GIFs |
 | `device_decode.cpp` | Test harness around the real firmware decoder |
-| `test_minimap_sim.py` | 31 tests of the simulator |
+| `test_minimap_sim.py` | 32 tests of the simulator |
 | `test_firmware_parity.py` | 9 tests: the firmware renderer (`firmware/product-esp32s3`) compiled for the PC against this simulator |
 
 ## Next
